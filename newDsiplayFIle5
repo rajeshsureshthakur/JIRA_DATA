@@ -1,0 +1,151 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+
+public class DetailWindow extends JFrame {
+    private JTextField timeSpentField;
+    private MainScreen mainScreen;
+    private String key;
+    private String summary;
+    private String status;
+    private String art;
+    private String timeSpent;
+    private String epic;
+
+    public DetailWindow(MainScreen mainScreen, String key, String summary, String status, String art, String timeSpent, String epic) {
+        this.mainScreen = mainScreen;
+        this.key = key;
+        this.summary = summary;
+        this.status = status;
+        this.art = art;
+        this.timeSpent = timeSpent;
+        this.epic = epic;
+
+        setTitle("Details");
+        setSize(600, 400);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        // Create a main panel
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Add components
+        addRow(mainPanel, gbc, 0, "Key:", key);
+        addRow(mainPanel, gbc, 1, "Summary:", summary, true);  // Added true for Summary
+        addRow(mainPanel, gbc, 2, "Status:", status);
+        addRow(mainPanel, gbc, 3, "ART:", art);
+        addRow(mainPanel, gbc, 4, "Time Spent:", timeSpent, true);
+        addRow(mainPanel, gbc, 5, "EPIC:", epic);
+
+        // Buttons panel
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
+
+        JButton updateButton = new JButton("Update");
+        JButton backButton = new JButton("Back");
+
+        buttonPanel.add(updateButton);
+        buttonPanel.add(backButton);
+
+        // Add panels to frame
+        add(new JScrollPane(mainPanel), BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        // Update button action
+        updateButton.addActionListener(e -> updateTimeSpent());
+
+        // Back button action
+        backButton.addActionListener(e -> {
+            mainScreen.loadDataFromDatabase(); // Refresh main screen
+            dispose(); // Close this window
+        });
+    }
+
+    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, String valueText) {
+        addRow(panel, gbc, row, labelText, valueText, false);
+    }
+
+    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, String valueText, boolean editable) {
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Arial", Font.BOLD, 14));
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        panel.add(label, gbc);
+
+        if (editable) {
+            if (labelText.equals("Time Spent:")) {
+                timeSpentField = new JTextField(20);
+                timeSpentField.setText(valueText);
+                gbc.gridx = 1;
+                panel.add(timeSpentField, gbc);
+            }
+        } else {
+            if (labelText.equals("Summary:")) {
+                // Create a scrollable text area for summary
+                JTextArea summaryArea = new JTextArea(valueText);
+                summaryArea.setEditable(false);
+                summaryArea.setWrapStyleWord(true);
+                summaryArea.setLineWrap(true);
+                summaryArea.setFont(new Font("Arial", Font.PLAIN, 14));
+                summaryArea.setCaretPosition(0);  // Scroll to the top if text is large
+                summaryArea.setBackground(new Color(240, 240, 240));  // Light gray background
+                summaryArea.setPreferredSize(new Dimension(400, 100)); // Adjust height for better readability
+                JScrollPane scrollPane = new JScrollPane(summaryArea);
+                gbc.gridx = 1;
+                panel.add(scrollPane, gbc);  // Add scrollable summary field
+            } else {
+                JTextField valueField = new JTextField(20);
+                valueField.setText(valueText);
+                valueField.setEditable(false);
+                gbc.gridx = 1;
+                panel.add(valueField, gbc);
+            }
+        }
+    }
+
+    private void updateTimeSpent() {
+        String newTimeSpent = timeSpentField.getText().trim();
+
+        if (newTimeSpent.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Time Spent cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            int updatedValue = Integer.parseInt(newTimeSpent);
+
+            // Update in database
+            Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe", "your_user", "your_password");
+            String sql = "UPDATE jiradata SET time_spent = ? WHERE key = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, updatedValue);
+            stmt.setString(2, key);
+
+            int rows = stmt.executeUpdate();
+
+            if (rows > 0) {
+                JOptionPane.showMessageDialog(this, "Time Spent updated successfully!");
+                mainScreen.loadDataFromDatabase(); // Refresh table
+                dispose(); // Close window after success
+            } else {
+                JOptionPane.showMessageDialog(this, "Failed to update record.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+
+            stmt.close();
+            conn.close();
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this, "Time Spent must be a number!", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error while updating database!", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
