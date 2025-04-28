@@ -1,0 +1,62 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.sql.*;
+
+public class JiraDataViewer extends JFrame {
+    private JTable table;
+    private DefaultTableModel model;
+
+    public JiraDataViewer() {
+        setTitle("Jira Data Viewer");
+        setSize(800, 600);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        model = new DefaultTableModel();
+        table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+        add(scrollPane, BorderLayout.CENTER);
+
+        // Set column names
+        model.setColumnIdentifiers(new String[]{"Key", "Summary", "Status", "ART", "Time_Spent", "Epic"});
+
+        // Fetch and display data
+        fetchData();
+    }
+
+    private void fetchData() {
+        String url = "jdbc:oracle:thin:@//your-db-server:1521/yourDB";
+        String username = "your_username";
+        String password = "your_password";
+
+        String query = "SELECT key, summary, status, art, time_spent, epic FROM jiradata";
+
+        try (Connection conn = DriverManager.getConnection(url, username, password);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            while (rs.next()) {
+                Object[] row = new Object[]{
+                    rs.getString("key"),
+                    rs.getString("summary"),
+                    rs.getString("status"),
+                    rs.getString("art"),
+                    rs.getInt("time_spent"),
+                    rs.getString("epic")
+                };
+                model.addRow(row);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error fetching data: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JiraDataViewer viewer = new JiraDataViewer();
+            viewer.setVisible(true);
+        });
+    }
+}
