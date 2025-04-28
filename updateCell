@@ -1,0 +1,102 @@
+table.addMouseListener(new MouseAdapter() {
+    public void mouseClicked(MouseEvent e) {
+        if (e.getClickCount() == 2) { // double click
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow != -1) {
+                // Fetch values from selected row
+                String key = table.getValueAt(selectedRow, 0).toString();
+                String summary = table.getValueAt(selectedRow, 1).toString();
+                String status = table.getValueAt(selectedRow, 2).toString();
+                String art = table.getValueAt(selectedRow, 3).toString();
+                String timeSpent = table.getValueAt(selectedRow, 4).toString();
+                String epic = table.getValueAt(selectedRow, 5).toString();
+                
+                // Open detail window
+                new DetailWindow(key, summary, status, art, timeSpent, epic);
+            }
+        }
+    }
+});
+
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class DetailWindow extends JFrame {
+    private JTextField timeSpentField;
+    private String key; // To update record in DB
+
+    public DetailWindow(String key, String summary, String status, String art, String timeSpent, String epic) {
+        this.key = key;
+        
+        setTitle("Detail View");
+        setSize(400, 400);
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(8, 2, 10, 10));
+        
+        // Add Labels and Values
+        add(new JLabel("Key:"));
+        add(new JLabel(key));
+        
+        add(new JLabel("Summary:"));
+        add(new JLabel(summary));
+        
+        add(new JLabel("Status:"));
+        add(new JLabel(status));
+        
+        add(new JLabel("ART:"));
+        add(new JLabel(art));
+        
+        add(new JLabel("Time Spent:"));
+        timeSpentField = new JTextField(timeSpent); // editable
+        add(timeSpentField);
+        
+        add(new JLabel("Epic:"));
+        add(new JLabel(epic));
+        
+        // Update button
+        JButton updateButton = new JButton("Update Time Spent");
+        updateButton.addActionListener(e -> updateTimeSpent());
+        add(updateButton);
+        
+        // Back button
+        JButton backButton = new JButton("Back");
+        backButton.addActionListener(e -> dispose());
+        add(backButton);
+        
+        setVisible(true);
+    }
+
+    private void updateTimeSpent() {
+        String newTimeSpent = timeSpentField.getText();
+        
+        // Validate if it's a number
+        try {
+            int ts = Integer.parseInt(newTimeSpent);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid number for Time Spent.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Update the database
+        try (Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@//your-db-url", "username", "password");
+             PreparedStatement ps = conn.prepareStatement("UPDATE jiradata SET time_spent = ? WHERE key = ?")) {
+            
+            ps.setInt(1, Integer.parseInt(newTimeSpent));
+            ps.setString(2, key);
+            
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                JOptionPane.showMessageDialog(this, "Time Spent updated successfully!");
+                dispose(); // Close window
+            } else {
+                JOptionPane.showMessageDialog(this, "Update failed. Please try again.");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Database error occurred.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
