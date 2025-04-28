@@ -5,22 +5,22 @@ import java.sql.*;
 
 public class DetailWindow extends JFrame {
     private JTextField timeSpentField;
-    private String key; // To update record in DB
+    private String key;
 
     public DetailWindow(String key, String summary, String status, String art, String timeSpent, String epic) {
         this.key = key;
 
         setTitle("Detail View");
-        setSize(600, 400);
+        setSize(600, 450);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        // Use GridBagLayout for better alignment
         JPanel panel = new JPanel(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8); // padding
-
+        gbc.insets = new Insets(8, 8, 8, 8);
         gbc.anchor = GridBagConstraints.LINE_END;
+
+        // Labels
         gbc.gridx = 0; gbc.gridy = 0;
         panel.add(new JLabel("Key:"), gbc);
 
@@ -39,13 +39,21 @@ public class DetailWindow extends JFrame {
         gbc.gridy++;
         panel.add(new JLabel("Epic:"), gbc);
 
-        // Now add values next to labels
+        // Values
         gbc.anchor = GridBagConstraints.LINE_START;
         gbc.gridx = 1; gbc.gridy = 0;
         panel.add(new JLabel(key), gbc);
 
         gbc.gridy++;
-        panel.add(new JLabel(summary), gbc);
+        JTextArea summaryArea = new JTextArea(3, 30);
+        summaryArea.setText(summary);
+        summaryArea.setLineWrap(true);
+        summaryArea.setWrapStyleWord(true);
+        summaryArea.setEditable(false);
+        summaryArea.setBackground(panel.getBackground());
+        JScrollPane scrollPane = new JScrollPane(summaryArea);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        panel.add(scrollPane, gbc);
 
         gbc.gridy++;
         panel.add(new JLabel(status), gbc);
@@ -71,7 +79,7 @@ public class DetailWindow extends JFrame {
         updateButton.addActionListener(e -> updateTimeSpent());
         backButton.addActionListener(e -> dispose());
 
-        // Add everything to Frame
+        // Add to frame
         add(panel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
 
