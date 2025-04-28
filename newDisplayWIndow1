@@ -1,0 +1,161 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class DetailWindow extends JFrame {
+    private JTextField timeSpentField;
+    private String key;
+    private static final Color BACKGROUND_COLOR = new Color(245, 248, 250);
+
+    public DetailWindow(String key, String summary, String status, String art, String timeSpent, String epic) {
+        this.key = key;
+
+        setTitle("Detail View");
+        setSize(650, 500);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(BACKGROUND_COLOR);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 15, 10, 15);
+        gbc.anchor = GridBagConstraints.LINE_END;
+
+        Font labelFont = new Font("Arial", Font.BOLD, 14);
+        Font valueFont = new Font("Arial", Font.PLAIN, 14);
+
+        // Labels
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(createLabel("Key:", labelFont), gbc);
+
+        gbc.gridy++;
+        panel.add(createLabel("Summary:", labelFont), gbc);
+
+        gbc.gridy++;
+        panel.add(createLabel("Status:", labelFont), gbc);
+
+        gbc.gridy++;
+        panel.add(createLabel("ART:", labelFont), gbc);
+
+        gbc.gridy++;
+        panel.add(createLabel("Time Spent:", labelFont), gbc);
+
+        gbc.gridy++;
+        panel.add(createLabel("Epic:", labelFont), gbc);
+
+        // Values
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.gridx = 1; gbc.gridy = 0;
+        panel.add(createValueLabel(key, valueFont), gbc);
+
+        gbc.gridy++;
+        JTextArea summaryArea = new JTextArea(4, 30);
+        summaryArea.setText(summary);
+        summaryArea.setLineWrap(true);
+        summaryArea.setWrapStyleWord(true);
+        summaryArea.setEditable(false);
+        summaryArea.setFont(valueFont);
+        summaryArea.setBackground(Color.WHITE);
+        JScrollPane scrollPane = new JScrollPane(summaryArea);
+        scrollPane.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        panel.add(scrollPane, gbc);
+
+        gbc.gridy++;
+        panel.add(createValueLabel(status, valueFont), gbc);
+
+        gbc.gridy++;
+        panel.add(createValueLabel(art, valueFont), gbc);
+
+        gbc.gridy++;
+        timeSpentField = new JTextField(10);
+        timeSpentField.setFont(valueFont);
+        timeSpentField.setText(timeSpent);
+        panel.add(timeSpentField, gbc);
+
+        gbc.gridy++;
+        panel.add(createValueLabel(epic, valueFont), gbc);
+
+        // Buttons
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(BACKGROUND_COLOR);
+
+        JButton updateButton = new JButton("Update Time Spent");
+        JButton backButton = new JButton("Back");
+
+        updateButton.setBackground(new Color(70, 130, 180));
+        updateButton.setForeground(Color.WHITE);
+
+        backButton.setBackground(new Color(220, 53, 69));
+        backButton.setForeground(Color.WHITE);
+
+        updateButton.setFocusPainted(false);
+        backButton.setFocusPainted(false);
+
+        buttonPanel.add(updateButton);
+        buttonPanel.add(backButton);
+
+        updateButton.addActionListener(e -> updateTimeSpent());
+        backButton.addActionListener(e -> dispose());
+
+        // Final add
+        add(panel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        setVisible(true);
+    }
+
+    private JLabel createLabel(String text, Font font) {
+        JLabel label = new JLabel(text);
+        label.setFont(font);
+        return label;
+    }
+
+    private JLabel createValueLabel(String text, Font font) {
+        JLabel label = new JLabel(text);
+        label.setFont(font);
+        return label;
+    }
+
+    private void updateTimeSpent() {
+        String newTimeSpent = timeSpentField.getText().trim();
+
+        try {
+            int ts = Integer.parseInt(newTimeSpent); // Validate numeric
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "Please enter a valid number for Time Spent.",
+                    "Invalid Input",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try (Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@//your-db-url", "username", "password");
+             PreparedStatement ps = conn.prepareStatement("UPDATE jiradata SET time_spent = ? WHERE key = ?")) {
+
+            ps.setInt(1, Integer.parseInt(newTimeSpent));
+            ps.setString(2, key);
+
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                JOptionPane.showMessageDialog(this,
+                        "Time Spent updated successfully!",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Update failed. Please try again.",
+                        "Update Failed",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Database error occurred.",
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
