@@ -1,0 +1,135 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+public class DetailWindow extends JFrame {
+    private String key, summary, status, art, timeSpent, epic;
+    private JTextField timeSpentField;
+    private MainScreen mainScreenReference;
+
+    public DetailWindow(MainScreen mainScreen, String key, String summary, String status, String art, String timeSpent, String epic) {
+        this.mainScreenReference = mainScreen;
+        this.key = key;
+        this.summary = summary;
+        this.status = status;
+        this.art = art;
+        this.timeSpent = timeSpent;
+        this.epic = epic;
+
+        setTitle("Detail View");
+        setSize(600, 400);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        addRow(panel, gbc, 0, "Key:", key);
+        addRow(panel, gbc, 1, "Summary:", summary);
+        addRow(panel, gbc, 2, "Status:", status);
+        addRow(panel, gbc, 3, "ART:", art);
+        addRow(panel, gbc, 4, "EPIC:", epic);
+
+        // Time Spent editable field
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        panel.add(new JLabel("Time Spent:"), gbc);
+
+        gbc.gridx = 1;
+        timeSpentField = new JTextField(timeSpent, 20);
+        panel.add(timeSpentField, gbc);
+
+        // Buttons
+        JPanel buttonPanel = new JPanel();
+        JButton updateButton = new JButton("Update");
+        JButton backButton = new JButton("Back");
+
+        buttonPanel.add(updateButton);
+        buttonPanel.add(backButton);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(buttonPanel, gbc);
+
+        add(panel);
+
+        // Button Actions
+        updateButton.addActionListener(e -> updateTimeSpent());
+        backButton.addActionListener(e -> dispose());
+    }
+
+    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, String value) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        panel.add(new JLabel(label), gbc);
+
+        gbc.gridx = 1;
+        panel.add(new JLabel(value), gbc);
+    }
+
+    private void updateTimeSpent() {
+        String newTimeSpent = timeSpentField.getText();
+        if (newTimeSpent.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Time Spent cannot be empty!",
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            int newTime = Integer.parseInt(newTimeSpent);
+
+            Connection conn = DriverManager.getConnection(
+                    "jdbc:oracle:thin:@//your-db-url",
+                    "your_username",
+                    "your_password"
+            );
+
+            String sql = "UPDATE jiradata SET time_spent = ? WHERE key = ?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, newTime);
+            ps.setString(2, key);
+
+            int updated = ps.executeUpdate();
+            ps.close();
+            conn.close();
+
+            if (updated > 0) {
+                JOptionPane.showMessageDialog(this,
+                        "Time Spent updated successfully!",
+                        "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
+                mainScreenReference.reloadTableData();  // Refresh table!
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Update failed!",
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Please enter a valid number for Time Spent!",
+                    "Input Error",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                    "Database error while updating!",
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
