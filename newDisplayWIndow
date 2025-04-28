@@ -1,0 +1,108 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class DetailWindow extends JFrame {
+    private JTextField timeSpentField;
+    private String key; // To update record in DB
+
+    public DetailWindow(String key, String summary, String status, String art, String timeSpent, String epic) {
+        this.key = key;
+
+        setTitle("Detail View");
+        setSize(600, 400);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        // Use GridBagLayout for better alignment
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8); // padding
+
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Key:"), gbc);
+
+        gbc.gridy++;
+        panel.add(new JLabel("Summary:"), gbc);
+
+        gbc.gridy++;
+        panel.add(new JLabel("Status:"), gbc;
+
+        gbc.gridy++;
+        panel.add(new JLabel("ART:"), gbc);
+
+        gbc.gridy++;
+        panel.add(new JLabel("Time Spent:"), gbc);
+
+        gbc.gridy++;
+        panel.add(new JLabel("Epic:"), gbc);
+
+        // Now add values next to labels
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.gridx = 1; gbc.gridy = 0;
+        panel.add(new JLabel(key), gbc);
+
+        gbc.gridy++;
+        panel.add(new JLabel(summary), gbc);
+
+        gbc.gridy++;
+        panel.add(new JLabel(status), gbc);
+
+        gbc.gridy++;
+        panel.add(new JLabel(art), gbc);
+
+        gbc.gridy++;
+        timeSpentField = new JTextField(10);
+        timeSpentField.setText(timeSpent);
+        panel.add(timeSpentField, gbc);
+
+        gbc.gridy++;
+        panel.add(new JLabel(epic), gbc);
+
+        // Buttons
+        JPanel buttonPanel = new JPanel();
+        JButton updateButton = new JButton("Update Time Spent");
+        JButton backButton = new JButton("Back");
+        buttonPanel.add(updateButton);
+        buttonPanel.add(backButton);
+
+        updateButton.addActionListener(e -> updateTimeSpent());
+        backButton.addActionListener(e -> dispose());
+
+        // Add everything to Frame
+        add(panel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        setVisible(true);
+    }
+
+    private void updateTimeSpent() {
+        String newTimeSpent = timeSpentField.getText();
+        try {
+            int ts = Integer.parseInt(newTimeSpent);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid number for Time Spent.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try (Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@//your-db-url", "username", "password");
+             PreparedStatement ps = conn.prepareStatement("UPDATE jiradata SET time_spent = ? WHERE key = ?")) {
+
+            ps.setInt(1, Integer.parseInt(newTimeSpent));
+            ps.setString(2, key);
+
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                JOptionPane.showMessageDialog(this, "Time Spent updated successfully!");
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "Update failed. Please try again.");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Database error occurred.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
