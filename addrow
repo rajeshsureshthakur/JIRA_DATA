@@ -1,0 +1,39 @@
+private void addRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, String valueText, boolean editable) {
+    JLabel label = new JLabel(labelText);
+    label.setFont(new Font("Arial", Font.BOLD, 14));
+    gbc.gridx = 0;
+    gbc.gridy = row;
+    panel.add(label, gbc);
+
+    if (editable) {
+        if (labelText.equals("Time Spent:")) {
+            timeSpentField = new JTextField(20);
+            timeSpentField.setText(valueText);
+            gbc.gridx = 1;
+            panel.add(timeSpentField, gbc);
+        }
+    } else {
+        if (labelText.equals("Summary:")) {
+            // Ensure that the JTextArea for Summary is created and scrollable
+            JTextArea summaryArea = new JTextArea(valueText);
+            summaryArea.setEditable(false); // Make it non-editable
+            summaryArea.setWrapStyleWord(true); // Ensure word wrapping
+            summaryArea.setLineWrap(true); // Enable line wrap
+            summaryArea.setFont(new Font("Arial", Font.PLAIN, 14));
+            summaryArea.setCaretPosition(0);  // Scroll to the top if text is large
+            summaryArea.setBackground(new Color(240, 240, 240));  // Light gray background
+            summaryArea.setPreferredSize(new Dimension(400, 100)); // Adjust height for better readability
+
+            // Add JScrollPane to ensure scrolling if the text is large
+            JScrollPane scrollPane = new JScrollPane(summaryArea);
+            gbc.gridx = 1;
+            panel.add(scrollPane, gbc);  // Add scrollable summary field
+        } else {
+            JTextField valueField = new JTextField(20);
+            valueField.setText(valueText);
+            valueField.setEditable(false);
+            gbc.gridx = 1;
+            panel.add(valueField, gbc);
+        }
+    }
+}
