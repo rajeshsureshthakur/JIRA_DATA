@@ -1,0 +1,43 @@
+private void addRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, String valueText, boolean editable) {
+    JLabel label = new JLabel(labelText);
+    label.setFont(new Font("Arial", Font.BOLD, 14));
+    gbc.gridx = 0;
+    gbc.gridy = row;
+    gbc.anchor = GridBagConstraints.NORTHWEST; // Very important for multi-line fields
+    panel.add(label, gbc);
+
+    if (editable) {
+        if (labelText.equals("Time Spent:")) {
+            timeSpentField = new JTextField(20);
+            timeSpentField.setText(valueText);
+            gbc.gridx = 1;
+            gbc.gridy = row;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            panel.add(timeSpentField, gbc);
+        }
+    } else {
+        if (labelText.equals("Summary:")) {
+            JTextArea summaryArea = new JTextArea(valueText);
+            summaryArea.setWrapStyleWord(true);
+            summaryArea.setLineWrap(true);
+            summaryArea.setEditable(false);
+            summaryArea.setFont(new Font("Arial", Font.PLAIN, 14));
+            summaryArea.setBackground(new Color(240, 240, 240));
+
+            JScrollPane scrollPane = new JScrollPane(summaryArea);
+            scrollPane.setPreferredSize(new Dimension(400, 100)); // Set size
+            gbc.gridx = 1;
+            gbc.gridy = row;
+            gbc.fill = GridBagConstraints.BOTH;  // Important for JTextArea
+            panel.add(scrollPane, gbc);
+        } else {
+            JTextField valueField = new JTextField(20);
+            valueField.setText(valueText);
+            valueField.setEditable(false);
+            gbc.gridx = 1;
+            gbc.gridy = row;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            panel.add(valueField, gbc);
+        }
+    }
+}
