@@ -1,0 +1,13 @@
+// After creating your JTable
+JTable table = new JTable(model);
+
+// Enable sorting
+TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
+table.setRowSorter(sorter);
+
+// Sort by Time_Spent column (assuming it is column index 4) - adjust index if needed
+List<RowSorter.SortKey> sortKeys = new ArrayList<>();
+sortKeys.add(new RowSorter.SortKey(4, SortOrder.DESCENDING));  // 4 = Time_Spent column index
+
+sorter.setSortKeys(sortKeys);
+sorter.sort();  // Apply the sorting
