@@ -1,0 +1,121 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+public class DetailWindow extends JFrame {
+    private LocalDate selectedDate = LocalDate.now(); // variable to hold date
+    private JLabel dateLabel;
+
+    public DetailWindow(JFrame parent, String key, String summary, String status, String art, String timeSpent, String epic) {
+        setTitle("Detail View");
+        setSize(600, 400);
+        setLocationRelativeTo(parent);
+        setLayout(new BorderLayout());
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Summary area (unchanged)
+        JTextArea summaryArea = new JTextArea(summary);
+        summaryArea.setWrapStyleWord(true);
+        summaryArea.setLineWrap(true);
+        summaryArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(summaryArea);
+        scrollPane.setPreferredSize(new Dimension(500, 80));
+
+        // Time_Spent input (compact)
+        JTextField timeSpentField = new JTextField(timeSpent);
+        timeSpentField.setPreferredSize(new Dimension(100, 24)); // smaller size
+
+        // Date picker
+        JButton calendarBtn = new JButton("📅");
+        calendarBtn.addActionListener(e -> {
+            LocalDate date = LocalDate.now();
+            String selected = JOptionPane.showInputDialog(this, "Enter date (yyyy-MM-dd):", date.toString());
+            if (selected != null && !selected.isEmpty()) {
+                try {
+                    selectedDate = LocalDate.parse(selected);
+                    dateLabel.setText("Selected Date: " + selectedDate.format(DateTimeFormatter.ISO_DATE));
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Invalid date format!");
+                }
+            }
+        });
+
+        dateLabel = new JLabel("Selected Date: " + selectedDate.format(DateTimeFormatter.ISO_DATE));
+
+        // Add rows
+        addRow(panel, gbc, 0, "Key:", key, false);
+        addRow(panel, gbc, 1, "Summary:", scrollPane);
+        addRow(panel, gbc, 2, "Status:", status, false);
+        addRow(panel, gbc, 3, "ART:", art, false);
+        addRow(panel, gbc, 4, "Time Spent:", timeSpentField, false);
+        
+        // Custom row for date + button
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 1;
+        panel.add(new JLabel("Date:"), gbc);
+
+        gbc.gridx = 1;
+        JPanel datePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        datePanel.add(calendarBtn);
+        datePanel.add(dateLabel);
+        panel.add(datePanel, gbc);
+
+        addRow(panel, gbc, 6, "EPIC:", epic, false);
+
+        // Buttons (unchanged)
+        JButton updateBtn = new JButton("Update");
+        updateBtn.addActionListener(e -> {
+            String newTimeSpent = timeSpentField.getText();
+            // Update logic to DB...
+            JOptionPane.showMessageDialog(this, "Time Spent updated successfully for key " + key);
+            dispose();
+        });
+
+        JButton backBtn = new JButton("Back");
+        backBtn.addActionListener(e -> dispose());
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(updateBtn);
+        buttonPanel.add(backBtn);
+
+        add(panel, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, String value, boolean multiline) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        panel.add(new JLabel(label), gbc);
+
+        gbc.gridx = 1;
+        if (multiline) {
+            JTextArea area = new JTextArea(value);
+            area.setLineWrap(true);
+            area.setWrapStyleWord(true);
+            area.setEditable(false);
+            JScrollPane scrollPane = new JScrollPane(area);
+            scrollPane.setPreferredSize(new Dimension(500, 60));
+            panel.add(scrollPane, gbc);
+        } else {
+            JTextField field = new JTextField(value);
+            field.setEditable(false);
+            panel.add(field, gbc);
+        }
+    }
+
+    private void addRow(JPanel panel, GridBagConstraints gbc, int row, String label, JScrollPane component) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        panel.add(new JLabel(label), gbc);
+
+        gbc.gridx = 1;
+        panel.add(component, gbc);
+    }
+}
