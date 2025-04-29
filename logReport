@@ -1,0 +1,105 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+public class JiraWorklogViewer extends JFrame {
+    private JTable table;
+    private DefaultTableModel model;
+    private JTextField assigneeField;
+    private JButton backButton, filterButton;
+    private JFormattedTextField startDateField, endDateField;
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    public JiraWorklogViewer() {
+        setTitle("JIRA Worklog Summary");
+        setSize(800, 500);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new FlowLayout());
+
+        topPanel.add(new JLabel("Assignee:"));
+        assigneeField = new JTextField(10);
+        topPanel.add(assigneeField);
+
+        topPanel.add(new JLabel("Start Date (yyyy-MM-dd):"));
+        startDateField = new JFormattedTextField(formatter.toFormat());
+        startDateField.setColumns(10);
+        topPanel.add(startDateField);
+
+        topPanel.add(new JLabel("End Date (yyyy-MM-dd):"));
+        endDateField = new JFormattedTextField(formatter.toFormat());
+        endDateField.setColumns(10);
+        topPanel.add(endDateField);
+
+        filterButton = new JButton("Filter");
+        topPanel.add(filterButton);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        model = new DefaultTableModel(new String[]{"JIRA Key", "Log Estimate (s)", "Total Logged Time (s)"}, 0) {
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+        add(scrollPane, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel();
+        backButton = new JButton("Back");
+        bottomPanel.add(backButton);
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        filterButton.addActionListener(e -> fetchData());
+        backButton.addActionListener(e -> dispose());
+
+        setVisible(true);
+    }
+
+    private void fetchData() {
+        model.setRowCount(0);
+        String assignee = assigneeField.getText().trim();
+        String startDate = startDateField.getText().trim();
+        String endDate = endDateField.getText().trim();
+
+        if (assignee.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter assignee.");
+            return;
+        }
+
+        String query = "SELECT key, log_estimate, SUM(log_seconds) as total_seconds " +
+                       "FROM jiraworklog WHERE assignee = ? AND log_date BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD') " +
+                       "GROUP BY key, log_estimate ORDER BY key";
+
+        try (Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe", "username", "password");
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setString(1, assignee);
+            stmt.setString(2, startDate);
+            stmt.setString(3, endDate);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String key = rs.getString("key");
+                int estimate = rs.getInt("log_estimate");
+                int total = rs.getInt("total_seconds");
+                model.addRow(new Object[]{key, estimate, total});
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error fetching data.");
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(JiraWorklogViewer::new);
+    }
+}
