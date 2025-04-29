@@ -1,0 +1,29 @@
+// Create a panel to hold Time Spent field and Date Picker side-by-side
+JPanel timeDatePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+// Time Spent
+JTextField timeSpentField = new JTextField(5);
+timeSpentField.setText(timeSpent); // existing value
+timeDatePanel.add(new JLabel("Time Spent:"));
+timeDatePanel.add(timeSpentField);
+
+// Date Label and Picker
+JLabel dateLabel = new JLabel("Date:");
+JTextField dateField = new JTextField(8);
+dateField.setEditable(false);
+dateField.setText(LocalDate.now().toString()); // default today
+JButton calendarButton = new JButton("📅");
+
+// Action for calendar button (you can customize this)
+calendarButton.addActionListener(e -> {
+    LocalDate selectedDate = LocalDate.now(); // Simulate selection
+    dateField.setText(selectedDate.toString());
+});
+
+// Add date components
+timeDatePanel.add(dateLabel);
+timeDatePanel.add(dateField);
+timeDatePanel.add(calendarButton);
+
+// Add this combined panel as a single row
+addRow(panel, gbc, 4, " ", timeDatePanel, true);  // Empty label title
