@@ -1,0 +1,113 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.*;
+
+public class WorklogWindow extends JFrame {
+    private String key;
+    private String assignee;
+    private JTable table;
+    private DefaultTableModel model;
+    private Map<Integer, JTextField> logHourFields = new HashMap<>();
+
+    public WorklogWindow(String key, String assignee) {
+        this.key = key;
+        this.assignee = assignee;
+
+        setTitle("Work log entries for Key - " + key);
+        setSize(600, 400);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+
+        JLabel header = new JLabel("Work log entries for Key - " + key, JLabel.CENTER);
+        header.setFont(new Font("Arial", Font.BOLD, 16));
+        mainPanel.add(header, BorderLayout.NORTH);
+
+        model = new DefaultTableModel(new Object[]{"Date", "Logged Seconds", "Log Hours (Input)"}, 0);
+        table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        loadWorklogData();
+
+        JButton updateButton = new JButton("Update");
+        updateButton.addActionListener(e -> insertUpdatedLogs());
+
+        JButton backButton = new JButton("Back");
+        backButton.addActionListener(e -> dispose());
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(updateButton);
+        buttonPanel.add(backButton);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        add(mainPanel);
+        setVisible(true);
+    }
+
+    private void loadWorklogData() {
+        try (Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe", "username", "password");
+             PreparedStatement stmt = conn.prepareStatement(
+                     "SELECT log_date, SUM(log_seconds) as total_seconds " +
+                     "FROM jiraworklog " +
+                     "WHERE assignee = ? AND key = ? " +
+                     "GROUP BY log_date ORDER BY log_date")) {
+
+            stmt.setString(1, assignee);
+            stmt.setString(2, key);
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String date = rs.getString("log_date");
+                int seconds = rs.getInt("total_seconds");
+                JTextField inputField = new JTextField(10);
+                logHourFields.put(model.getRowCount(), inputField);
+
+                model.addRow(new Object[]{date, seconds, inputField});
+            }
+
+            table.getColumnModel().getColumn(2).setCellRenderer((table, value, isSelected, hasFocus, row, column) -> (Component) value);
+            table.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JTextField()));
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading data: " + ex.getMessage());
+        }
+    }
+
+    private void insertUpdatedLogs() {
+        try (Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe", "username", "password");
+             PreparedStatement insertStmt = conn.prepareStatement(
+                     "INSERT INTO jiraworklog (assignee, key, log_date, log_estimate, log_seconds) VALUES (?, ?, TO_DATE(?, 'YYYY-MM-DD'), ?, ?)")) {
+
+            for (int i = 0; i < model.getRowCount(); i++) {
+                String date = model.getValueAt(i, 0).toString();
+                JTextField inputField = (JTextField) model.getValueAt(i, 2);
+                String input = inputField.getText().trim();
+
+                if (!input.isEmpty()) {
+                    int logSeconds = Integer.parseInt(input) * 3600;
+
+                    insertStmt.setString(1, assignee);
+                    insertStmt.setString(2, key);
+                    insertStmt.setString(3, date);
+                    insertStmt.setInt(4, 0); // or some estimated value
+                    insertStmt.setInt(5, logSeconds);
+                    insertStmt.addBatch();
+                }
+            }
+
+            insertStmt.executeBatch();
+            JOptionPane.showMessageDialog(this, "Log updated successfully!");
+            dispose();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error inserting log: " + ex.getMessage());
+        }
+    }
+}
