@@ -1,3 +1,18 @@
+private void addRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, JComponent component) {
+    gbc.gridx = 0;
+    gbc.gridy = row;
+    gbc.gridwidth = 1;
+    gbc.anchor = GridBagConstraints.NORTHWEST;
+    panel.add(new JLabel(labelText), gbc);
+
+    gbc.gridx = 1;
+    gbc.fill = GridBagConstraints.HORIZONTAL;
+    gbc.weightx = 1.0;
+    panel.add(component, gbc);
+}
+
+
+
 // Create a panel to hold Time Spent field and Date Picker side-by-side
 JPanel timeDatePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
