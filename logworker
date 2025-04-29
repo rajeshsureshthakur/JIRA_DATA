@@ -1,0 +1,123 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.List;
+
+public class JiraWorklogViewer extends JFrame {
+    private JTable table;
+    private DefaultTableModel model;
+    private JTextField startDateField;
+    private JTextField endDateField;
+    private List<Object[]> originalData;
+    private final String assignee = "john.doe"; // Hardcoded assignee
+
+    public JiraWorklogViewer() {
+        setTitle("JIRA Worklog Viewer");
+        setSize(800, 500);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        startDateField = new JTextField(10);
+        endDateField = new JTextField(10);
+        JButton filterButton = new JButton("Filter");
+
+        filterPanel.add(new JLabel("Start Date (yyyy-MM-dd):"));
+        filterPanel.add(startDateField);
+        filterPanel.add(new JLabel("End Date (yyyy-MM-dd):"));
+        filterPanel.add(endDateField);
+        filterPanel.add(filterButton);
+
+        model = new DefaultTableModel(new String[]{"Key", "Log Estimate", "Total Logged Seconds"}, 0);
+        table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        JButton backButton = new JButton("Back");
+        backButton.addActionListener(e -> dispose());
+
+        add(filterPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(backButton, BorderLayout.SOUTH);
+
+        loadDataFromDatabase();
+
+        filterButton.addActionListener(e -> applyDateFilter());
+    }
+
+    private void loadDataFromDatabase() {
+        originalData = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection("jdbc:oracle:thin:@localhost:1521:xe", "username", "password")) {
+            String query = "SELECT key, log_date, log_estimate, log_seconds FROM jiraworklog WHERE assignee = ?";
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, assignee);
+            ResultSet rs = stmt.executeQuery();
+
+            Map<String, List<Integer>> keySecondsMap = new HashMap<>();
+            Map<String, Integer> keyEstimateMap = new HashMap<>();
+            Map<String, List<String>> keyDatesMap = new HashMap<>();
+
+            while (rs.next()) {
+                String key = rs.getString("key");
+                Date logDate = rs.getDate("log_date");
+                int estimate = rs.getInt("log_estimate");
+                int seconds = rs.getInt("log_seconds");
+
+                keySecondsMap.computeIfAbsent(key, k -> new ArrayList<>()).add(seconds);
+                keyEstimateMap.put(key, estimate);
+                keyDatesMap.computeIfAbsent(key, k -> new ArrayList<>()).add(new SimpleDateFormat("yyyy-MM-dd").format(logDate));
+            }
+
+            for (String key : keySecondsMap.keySet()) {
+                int totalSeconds = keySecondsMap.get(key).stream().mapToInt(Integer::intValue).sum();
+                int estimate = keyEstimateMap.get(key);
+                String datesCombined = String.join(",", keyDatesMap.get(key));
+                Object[] row = new Object[]{key, estimate, totalSeconds, datesCombined};
+                originalData.add(row);
+            }
+
+            refreshTable(originalData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading data.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void refreshTable(List<Object[]> data) {
+        model.setRowCount(0);
+        for (Object[] row : data) {
+            model.addRow(new Object[]{row[0], row[1], row[2]});
+        }
+    }
+
+    private void applyDateFilter() {
+        String start = startDateField.getText().trim();
+        String end = endDateField.getText().trim();
+
+        if (start.isEmpty() || end.isEmpty()) {
+            refreshTable(originalData);
+            return;
+        }
+
+        List<Object[]> filtered = new ArrayList<>();
+        for (Object[] row : originalData) {
+            String[] dates = row[3].toString().split(",");
+            for (String date : dates) {
+                if (date.compareTo(start) >= 0 && date.compareTo(end) <= 0) {
+                    filtered.add(row);
+                    break;
+                }
+            }
+        }
+
+        refreshTable(filtered);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new JiraWorklogViewer().setVisible(true));
+    }
+}
