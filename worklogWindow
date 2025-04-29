@@ -1,3 +1,18 @@
+table.addMouseListener(new MouseAdapter() {
+    public void mouseClicked(MouseEvent e) {
+        if (e.getClickCount() == 2) {
+            JTable target = (JTable) e.getSource();
+            int row = target.getSelectedRow();
+            if (row >= 0) {
+                String selectedKey = target.getValueAt(row, 0).toString();
+                new JiraWorklogDetailWindow(selectedKey);
+            }
+        }
+    }
+});
+
+
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
