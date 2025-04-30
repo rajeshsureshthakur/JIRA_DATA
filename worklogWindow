@@ -1,3 +1,46 @@
+private void loadWorkLoadData(String key) {
+    try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
+        String query = "SELECT log_date, SUM(log_seconds) as total_seconds " +
+                       "FROM jiraworklog WHERE assignee = ? AND key = ? GROUP BY log_date ORDER BY log_date";
+        PreparedStatement stmt = conn.prepareStatement(query);
+        stmt.setString(1, assignee);
+        stmt.setString(2, key);
+        ResultSet rs = stmt.executeQuery();
+
+        String[] columnNames = {"Log Date", "Logged Seconds", "Log Hours (Input)"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                // Only make the 3rd column editable
+                return column == 2;
+            }
+        };
+
+        while (rs.next()) {
+            String date = rs.getString("log_date");
+            int seconds = rs.getInt("total_seconds");
+            model.addRow(new Object[]{date, seconds, ""}); // empty input box
+        }
+
+        table.setModel(model);
+
+        // Set a plain JTextField editor for column 3
+        table.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JTextField()));
+
+        // Optional: Center align first two columns
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+        table.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error loading workload data.");
+    }
+}
+
+
+
 table.addMouseListener(new MouseAdapter() {
     public void mouseClicked(MouseEvent e) {
         if (e.getClickCount() == 2) {
