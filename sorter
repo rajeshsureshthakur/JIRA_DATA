@@ -70,4 +70,28 @@ private String getSafeValue(JTable table, int row, int col) {
 
 Object timeSpentObj = table.getValueAt(selectedRow, 4);
                 String timeSpent = (timeSpentObj != null) ? timeSpentObj.toString() : "0";
+
+
+
+updateButton.addActionListener(e -> {
+    int selectedRow = table.getSelectedRow();
+    if (selectedRow != -1) {
+        String updatedTimeSpent = timeSpentTextField.getText().trim(); // assuming this is your input field
+
+        // Immediately update the table to show new value
+        DefaultTableModel model = (DefaultTableModel) table.getModel();
+        model.setValueAt(updatedTimeSpent, selectedRow, 4); // 4 = Time Spent column index
+
+        // Optional: convert to seconds if needed for backend
+        int seconds = (int)(Double.parseDouble(updatedTimeSpent) * 3600);
+
+        // Run backend update in new thread
+        String key = table.getValueAt(selectedRow, 0).toString(); // assuming key is in column 0
+
+        new Thread(() -> {
+            updateTimeSpentInJiraAndDB(key, seconds);
+        }).start();
+    }
+});
+
                 
