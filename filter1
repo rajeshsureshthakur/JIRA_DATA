@@ -1,0 +1,51 @@
+private void updateRowFilter() {
+    String selectedStatus = (String) statusFilter.getSelectedItem();
+    String selectedArt = (String) artFilter.getSelectedItem();
+    String selectedSummary = (String) summaryFilter.getSelectedItem(); // assuming you have this
+
+    List<RowFilter<Object, Object>> filters = new ArrayList<>();
+
+    if (!"All".equals(selectedStatus)) {
+        filters.add(RowFilter.regexFilter("^" + Pattern.quote(selectedStatus) + "$", 2)); // Status column index
+    }
+
+    if (!"All".equals(selectedArt)) {
+        filters.add(RowFilter.regexFilter("^" + Pattern.quote(selectedArt) + "$", 3)); // ART column index
+    }
+
+    if (!"All".equals(selectedSummary)) {
+        filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(selectedSummary), summaryColumnIndex));
+    }
+
+    if (filters.isEmpty()) {
+        sorter.setRowFilter(null);
+    } else {
+        sorter.setRowFilter(RowFilter.andFilter(filters));
+    }
+}
+
+
+
+
+
+model = new DefaultTableModel(data, columnNames);
+table = new JTable(model);
+
+sorter = new TableRowSorter<>(model);
+
+// Custom comparator for Time_Spent column (index 4)
+sorter.setComparator(4, (String s1, String s2) -> {
+    try {
+        return Integer.compare(Integer.parseInt(s1), Integer.parseInt(s2));
+    } catch (NumberFormatException e) {
+        return 0;
+    }
+});
+
+table.setRowSorter(sorter);
+
+// Initial sort by Time_Spent descending
+List<RowSorter.SortKey> sortKeys = new ArrayList<>();
+sortKeys.add(new RowSorter.SortKey(4, SortOrder.DESCENDING));
+sorter.setSortKeys(sortKeys);
+sorter.sort();
