@@ -31,3 +31,15 @@ sorter.setComparator(5, (s1, s2) -> {
         return 0; // Optional: or compare using fallback
     }
 });
+
+table.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
+    @Override
+    protected void setValue(Object value) {
+        if (value == null || value.toString().trim().isEmpty()) {
+            super.setValue("0");  // or "N/A"
+        } else {
+            super.setValue(value.toString());
+        }
+    }
+});
+
