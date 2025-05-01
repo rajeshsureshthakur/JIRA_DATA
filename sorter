@@ -22,3 +22,21 @@ DefaultTableCellRenderer zeroIfNullRenderer = new DefaultTableCellRenderer() {
 
 
 table.getColumnModel().getColumn(5).setCellRenderer(zeroIfNullRenderer);
+
+DefaultTableCellRenderer hoursRenderer = new DefaultTableCellRenderer() {
+    {
+        setHorizontalAlignment(SwingConstants.CENTER);
+    }
+
+    @Override
+    public void setValue(Object value) {
+        try {
+            int seconds = (value == null || value.toString().trim().isEmpty()) ? 0 : Integer.parseInt(value.toString().trim());
+            double hours = seconds / 3600.0;
+            super.setValue(String.format("%.2f", hours)); // display with 2 decimal places
+        } catch (NumberFormatException e) {
+            super.setValue("0.00");
+        }
+    }
+};
+
