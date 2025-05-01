@@ -19,3 +19,15 @@ List<RowSorter.SortKey> sortKeys = new ArrayList<>();
 sortKeys.add(new RowSorter.SortKey(5, SortOrder.DESCENDING));
 sorter.setSortKeys(sortKeys);
 sorter.sort();
+
+
+
+sorter.setComparator(5, (s1, s2) -> {
+    try {
+        int val1 = (s1 == null || s1.trim().isEmpty()) ? 0 : Integer.parseInt(s1.trim());
+        int val2 = (s2 == null || s2.trim().isEmpty()) ? 0 : Integer.parseInt(s2.trim());
+        return Integer.compare(val1, val2);
+    } catch (NumberFormatException e) {
+        return 0; // Optional: or compare using fallback
+    }
+});
