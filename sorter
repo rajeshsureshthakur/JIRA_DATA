@@ -68,3 +68,6 @@ private String getSafeValue(JTable table, int row, int col) {
 }
 
 
+Object timeSpentObj = table.getValueAt(selectedRow, 4);
+                String timeSpent = (timeSpentObj != null) ? timeSpentObj.toString() : "0";
+                
