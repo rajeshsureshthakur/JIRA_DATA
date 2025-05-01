@@ -11,3 +11,25 @@ sortKeys.add(new RowSorter.SortKey(4, SortOrder.DESCENDING));  // 4 = Time_Spent
 
 sorter.setSortKeys(sortKeys);
 sorter.sort();  // Apply the sorting
+
+
+
+TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
+
+// Custom comparator for Time_Spent column (index 4)
+sorter.setComparator(4, (String s1, String s2) -> {
+    try {
+        return Integer.compare(Integer.parseInt(s1), Integer.parseInt(s2));
+    } catch (NumberFormatException e) {
+        return 0; // Fallback if parsing fails
+    }
+});
+
+table.setRowSorter(sorter);
+
+// Sort descending by Time_Spent
+List<RowSorter.SortKey> sortKeys = new ArrayList<>();
+sortKeys.add(new RowSorter.SortKey(4, SortOrder.DESCENDING));
+sorter.setSortKeys(sortKeys);
+sorter.sort();
+
