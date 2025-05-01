@@ -33,3 +33,16 @@ sortKeys.add(new RowSorter.SortKey(4, SortOrder.DESCENDING));
 sorter.setSortKeys(sortKeys);
 sorter.sort();
 
+
+
+
+if (model.getColumnCount() > 3) {
+    for (int i = 0; i < model.getRowCount(); i++) {
+        Object statusObj = model.getValueAt(i, 2);
+        Object artObj = model.getValueAt(i, 3);
+        if (statusObj != null) statusSet.add(statusObj.toString());
+        if (artObj != null) artSet.add(artObj.toString());
+    }
+}
+
+
