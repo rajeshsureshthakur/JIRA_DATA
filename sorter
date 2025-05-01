@@ -94,4 +94,35 @@ updateButton.addActionListener(e -> {
     }
 });
 
+
+
+// Add Refresh Button aligned right
+JButton refreshButton = new JButton("🔄 Refresh");
+refreshButton.setToolTipText("Reload data from JIRA");
+
+// Right-align: Use Box to push button to right
+Box horizontalBox = Box.createHorizontalBox();
+horizontalBox.add(filterPanel);
+horizontalBox.add(Box.createHorizontalGlue());  // push to right
+horizontalBox.add(refreshButton);
+
+// Add to main container
+add(horizontalBox, BorderLayout.NORTH);
+
+// Action Listener for Refresh Button
+refreshButton.addActionListener(e -> {
+    new Thread(() -> {
+        // Optional: disable the button while loading
+        SwingUtilities.invokeLater(() -> refreshButton.setEnabled(false));
+
+        updateJira();       // your custom method
+        updateDatabase();   // update DB with fresh JIRA data
+
+        SwingUtilities.invokeLater(() -> {
+            refreshData();  // repopulate table from DB
+            refreshButton.setEnabled(true); // re-enable button
+        });
+    }).start();
+});
+
                 
