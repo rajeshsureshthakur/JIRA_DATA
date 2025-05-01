@@ -40,3 +40,31 @@ DefaultTableCellRenderer hoursRenderer = new DefaultTableCellRenderer() {
     }
 };
 
+
+table.addMouseListener(new MouseAdapter() {
+    public void mouseClicked(MouseEvent e) {
+        if (e.getClickCount() == 2) { // double click
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow != -1) {
+                // Fetch values with null checks
+                String key = getSafeValue(table, selectedRow, 0);
+                String summary = getSafeValue(table, selectedRow, 1);
+                String status = getSafeValue(table, selectedRow, 2);
+                String art = getSafeValue(table, selectedRow, 3);
+                String timeSpent = getSafeValue(table, selectedRow, 4);
+                String epic = getSafeValue(table, selectedRow, 5);
+
+                // Open detail window
+                new DetailWindow(key, summary, status, art, timeSpent, epic);
+            }
+        }
+    }
+});
+
+// Utility method
+private String getSafeValue(JTable table, int row, int col) {
+    Object val = table.getValueAt(row, col);
+    return (val != null) ? val.toString() : "0";  // default to "0" for nulls
+}
+
+
