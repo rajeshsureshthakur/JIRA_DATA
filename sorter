@@ -1,48 +1,21 @@
-// After creating your JTable
-JTable table = new JTable(model);
+model = new DefaultTableModel(...);
+table = new JTable(model);
+table.setRowSorter(null); // Optional clean slate
 
-// Enable sorting
-TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
+sorter = new TableRowSorter<>(model);  // ✅ No 'TableRowSorter' before this if already declared
 table.setRowSorter(sorter);
 
-// Sort by Time_Spent column (assuming it is column index 4) - adjust index if needed
-List<RowSorter.SortKey> sortKeys = new ArrayList<>();
-sortKeys.add(new RowSorter.SortKey(4, SortOrder.DESCENDING));  // 4 = Time_Spent column index
-
-sorter.setSortKeys(sortKeys);
-sorter.sort();  // Apply the sorting
-
-
-
-TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
-
-// Custom comparator for Time_Spent column (index 4)
-sorter.setComparator(4, (String s1, String s2) -> {
+// Comparator for sorting
+sorter.setComparator(5, (s1, s2) -> {
     try {
         return Integer.compare(Integer.parseInt(s1), Integer.parseInt(s2));
     } catch (NumberFormatException e) {
-        return 0; // Fallback if parsing fails
+        return 0;
     }
 });
 
-table.setRowSorter(sorter);
-
-// Sort descending by Time_Spent
+// Default sort
 List<RowSorter.SortKey> sortKeys = new ArrayList<>();
-sortKeys.add(new RowSorter.SortKey(4, SortOrder.DESCENDING));
+sortKeys.add(new RowSorter.SortKey(5, SortOrder.DESCENDING));
 sorter.setSortKeys(sortKeys);
 sorter.sort();
-
-
-
-
-if (model.getColumnCount() > 3) {
-    for (int i = 0; i < model.getRowCount(); i++) {
-        Object statusObj = model.getValueAt(i, 2);
-        Object artObj = model.getValueAt(i, 3);
-        if (statusObj != null) statusSet.add(statusObj.toString());
-        if (artObj != null) artSet.add(artObj.toString());
-    }
-}
-
-
