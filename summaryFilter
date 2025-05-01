@@ -1,0 +1,22 @@
+String[] summaryFilters = {"All", "Requirement Gathering", "Test Execution", "Test Planning", "Test Design"};
+JComboBox<String> summaryFilterComboBox = new JComboBox<>(summaryFilters);
+
+summaryFilterComboBox.addActionListener(e -> {
+    String selectedKeyword = (String) summaryFilterComboBox.getSelectedItem();
+    filterTableBySummary(selectedKeyword);
+});
+
+// Add this combo box to the top panel (adjust layout as needed)
+topPanel.add(new JLabel("Filter by Summary:"));
+topPanel.add(summaryFilterComboBox);
+
+
+private void filterTableBySummary(String keyword) {
+    TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
+    if (!"All".equals(keyword)) {
+        sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(keyword), summaryColumnIndex));
+    } else {
+        sorter.setRowFilter(null);
+    }
+    table.setRowSorter(sorter);
+}
