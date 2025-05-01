@@ -1,0 +1,33 @@
+private TableRowSorter<DefaultTableModel> sorter;
+private String selectedStatus = "All";
+private String selectedArt = "All";
+private String selectedSummaryKeyword = "All";
+private final int summaryColumnIndex = 1; // Adjust if needed
+
+
+private void applyFilters() {
+    selectedStatus = (String) statusFilter.getSelectedItem();
+    selectedArt = (String) artFilter.getSelectedItem();
+    updateRowFilter();
+}
+
+private void filterTableBySummary(String keyword) {
+    selectedSummaryKeyword = keyword;
+    updateRowFilter();
+}
+
+private void updateRowFilter() {
+    List<RowFilter<Object, Object>> filters = new ArrayList<>();
+
+    if (!"All".equals(selectedStatus)) {
+        filters.add(RowFilter.regexFilter("^" + Pattern.quote(selectedStatus) + "$", 2)); // Status
+    }
+    if (!"All".equals(selectedArt)) {
+        filters.add(RowFilter.regexFilter("^" + Pattern.quote(selectedArt) + "$", 3));    // ART
+    }
+    if (!"All".equals(selectedSummaryKeyword)) {
+        filters.add(RowFilter.regexFilter("(?i)" + Pattern.quote(selectedSummaryKeyword), summaryColumnIndex)); // Summary
+    }
+
+    sorter.setRowFilter(filters.isEmpty() ? null : RowFilter.andFilter(filters));
+}
