@@ -17,14 +17,21 @@ statusTransitions.put("In Review", new String[]{"Done", "In Progress", "On Hold"
 statusTransitions.put("On Hold", new String[]{"New"});
 statusTransitions.put("Canceled", new String[]{"New"});
 
-String[] allowedStatuses = statusTransitions.getOrDefault(status, new String[]{});
-for (String s : allowedStatuses) {
-    newStatusComboBox.addItem(s);
+// Add current status as the first/default item
+newStatusComboBox.addItem(status);
+
+// Add other transitions, excluding current status to avoid duplicate
+String[] nextStatuses = statusTransitions.getOrDefault(status, new String[]{});
+for (String nextStatus : nextStatuses) {
+    if (!nextStatus.equals(status)) {
+        newStatusComboBox.addItem(nextStatus);
+    }
 }
-newStatusComboBox.setSelectedIndex(-1); // Optional: no default selection
+
 
 
 addRow(mainPanel, gbc, 3, "Change Status:", newStatusComboBox);
+
 
 
 String selectedStatus = (String) newStatusComboBox.getSelectedItem();
