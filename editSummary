@@ -1,0 +1,50 @@
+Create components
+java
+Copy
+Edit
+JLabel summaryLabel = new JLabel(summary);
+JTextField summaryField = new JTextField(summary, 30);
+summaryField.setEditable(true);
+🔹 2. Use CardLayout to switch between them
+java
+Copy
+Edit
+JPanel summaryCardPanel = new JPanel(new CardLayout());
+summaryCardPanel.add(summaryLabel, "view");
+summaryCardPanel.add(summaryField, "edit");
+🔹 3. Add edit button
+java
+Copy
+Edit
+JButton editSummaryBtn = new JButton("✎");
+editSummaryBtn.setToolTipText("Edit Summary");
+🔹 4. Add both (card panel + button) to a container
+java
+Copy
+Edit
+JPanel summaryPanel = new JPanel(new BorderLayout());
+summaryPanel.add(summaryCardPanel, BorderLayout.CENTER);
+summaryPanel.add(editSummaryBtn, BorderLayout.EAST);
+🔹 5. Add this panel to your mainPanel like this:
+java
+Copy
+Edit
+gbc.gridx = 0;
+gbc.gridy = 1;
+mainPanel.add(new JLabel("Summary:"), gbc);
+gbc.gridx = 1;
+mainPanel.add(summaryPanel, gbc);
+🔹 6. Handle switching on edit button click:
+java
+Copy
+Edit
+CardLayout cl = (CardLayout)(summaryCardPanel.getLayout());
+editSummaryBtn.addActionListener(e -> {
+    cl.show(summaryCardPanel, "edit");
+    summaryField.requestFocus();
+});
+🔹 7. On update, get updated value from summaryField:
+java
+Copy
+Edit
+String updatedSummary = summaryField.getText().trim();
