@@ -1,0 +1,47 @@
+// Current Status (already available)
+JLabel statusLabel = new JLabel("Status:");
+JTextField statusField = new JTextField(currentStatus);
+statusField.setEditable(false);
+
+// Dropdown for new status
+JLabel changeStatusLabel = new JLabel("Change Status:");
+JComboBox<String> newStatusComboBox = new JComboBox<>();
+
+// Populate valid transitions
+Map<String, String[]> statusTransitions = new HashMap<>();
+statusTransitions.put("New", new String[]{"To Do", "Canceled"});
+statusTransitions.put("To Do", new String[]{"In Progress", "On Hold", "Canceled", "New"});
+statusTransitions.put("In Progress", new String[]{"In Review", "On Hold", "Canceled", "New", "Done"});
+statusTransitions.put("In Review", new String[]{"Done", "In Progress", "On Hold", "Canceled", "New"});
+statusTransitions.put("On Hold", new String[]{"New"});
+statusTransitions.put("Canceled", new String[]{"New"});
+
+String[] allowedStatuses = statusTransitions.getOrDefault(currentStatus, new String[]{});
+for (String s : allowedStatuses) {
+    newStatusComboBox.addItem(s);
+}
+newStatusComboBox.setSelectedIndex(-1); // default no selection
+
+// Add to your panel
+panel.add(statusLabel);
+panel.add(statusField);
+panel.add(changeStatusLabel);
+panel.add(newStatusComboBox);
+
+
+
+updateButton.addActionListener(e -> {
+    String selectedStatus = (String) newStatusComboBox.getSelectedItem();
+    String newTimeSpent = timeSpentField.getText(); // or however you're collecting it
+
+    // Validate and update
+    if (selectedStatus != null && !selectedStatus.equals(currentStatus)) {
+        updateStatus(key, selectedStatus);  // Call your method
+    }
+
+    updateTimeSpent(key, newTimeSpent);     // Call your time update function
+
+    // Optionally close this window or show success
+    JOptionPane.showMessageDialog(this, "Updated successfully.");
+    this.dispose();
+});
