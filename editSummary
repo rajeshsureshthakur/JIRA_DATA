@@ -1,3 +1,15 @@
+private boolean isNumeric(String str) {
+    if (str == null || str.trim().isEmpty()) return false;
+    try {
+        Double.parseDouble(str); // Use Integer.parseInt(str) if you only expect integers
+        return true;
+    } catch (NumberFormatException e) {
+        return false;
+    }
+}
+
+
+
 if (labelText.equals("Summary:")) {
     // View Mode (non-editable)
     summaryAreaView = new JTextArea(valueText);
