@@ -173,3 +173,42 @@ private void fetchSuggestions() {
     }
 }
 
+
+
+
+
+// At class level
+private DocumentListener assigneeListener;
+
+private void setupAssigneeSuggestions() {
+    assigneeListener = new DocumentListener() {
+        @Override
+        public void insertUpdate(DocumentEvent e) {
+            fetchSuggestions();
+        }
+
+        @Override
+        public void removeUpdate(DocumentEvent e) {
+            fetchSuggestions();
+        }
+
+        @Override
+        public void changedUpdate(DocumentEvent e) {
+            fetchSuggestions();
+        }
+    };
+    assigneeField.getDocument().addDocumentListener(assigneeListener);
+}
+
+item.addActionListener(e -> {
+    assigneeField.getDocument().removeDocumentListener(assigneeListener); // 👈 Stop triggering
+
+    assigneeField.setText(name); // Set only the username
+    suggestionPopup.setVisible(false); // Hide popup
+
+    // Optional: Give some delay before re-adding listener to avoid re-triggering
+    SwingUtilities.invokeLater(() -> {
+        assigneeField.getDocument().addDocumentListener(assigneeListener); // 👈 Add back
+    });
+});
+
