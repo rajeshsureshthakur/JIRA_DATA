@@ -56,3 +56,27 @@ public boolean updateJiraDetails(String key,
         return false;
     }
 }
+
+
+String query = "SELECT key, summary, status, art, time_spent, epic FROM jiradata WHERE assignee = ?";
+
+try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+    pstmt.setString(1, assignee); // make sure 'assignee' is a valid String variable
+
+    try (ResultSet rs = pstmt.executeQuery()) {
+        while (rs.next()) {
+            Object[] row = new Object[]{
+                rs.getString("key"),
+                rs.getString("summary"),
+                rs.getString("status"),
+                rs.getString("art"),
+                rs.getInt("time_spent"),
+                rs.getString("epic")
+            };
+            model.addRow(row);
+        }
+    }
+
+} catch (SQLException e) {
+    e.printStackTrace();
+}
