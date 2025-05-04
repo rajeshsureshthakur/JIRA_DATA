@@ -1,0 +1,69 @@
+JTextField assigneeField = new JTextField(20);
+JPopupMenu suggestionPopup = new JPopupMenu();
+
+assigneeField.getDocument().addDocumentListener(new DocumentListener() {
+    private Timer timer = new Timer(300, null); // Delay typing
+
+    public void insertUpdate(DocumentEvent e) { scheduleSearch(); }
+    public void removeUpdate(DocumentEvent e) { scheduleSearch(); }
+    public void changedUpdate(DocumentEvent e) {}
+
+    private void scheduleSearch() {
+        timer.stop();
+        timer.setInitialDelay(300);
+        timer.setRepeats(false);
+        timer.addActionListener(evt -> fetchSuggestions());
+        timer.start();
+    }
+
+    private void fetchSuggestions() {
+        String input = assigneeField.getText().trim();
+        if (input.length() < 2) return; // wait for 2 characters
+
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://your-jira.com/rest/api/2/user/search?query=" + URLEncoder.encode(input, "UTF-8"));
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestProperty("Authorization", "Basic yourEncodedCredentials");
+                conn.setRequestMethod("GET");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) response.append(line);
+                in.close();
+
+                List<String> names = parseUserNames(response.toString());
+
+                SwingUtilities.invokeLater(() -> {
+                    suggestionPopup.removeAll();
+                    for (String name : names) {
+                        JMenuItem item = new JMenuItem(name);
+                        item.addActionListener(e -> {
+                            assigneeField.setText(name);
+                            suggestionPopup.setVisible(false);
+                        });
+                        suggestionPopup.add(item);
+                    }
+                    suggestionPopup.show(assigneeField, 0, assigneeField.getHeight());
+                });
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private List<String> parseUserNames(String json) {
+        List<String> names = new ArrayList<>();
+        try {
+            JSONArray array = new JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject user = array.getJSONObject(i);
+                names.add(user.getString("displayName"));
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return names;
+    }
+});
