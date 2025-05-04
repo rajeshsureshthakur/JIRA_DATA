@@ -119,3 +119,57 @@ private void fetchSuggestions() {
             }
         });
     }
+
+
+
+
+
+
+private void fetchSuggestions() {
+    String input = assigneeField.getText().trim();
+    if (input.length() < 2) {
+        suggestionPopup.setVisible(false);
+        return;
+    }
+
+    try {
+        String encoded = URLEncoder.encode(input, StandardCharsets.UTF_8.toString());
+        URL url = new URL("https://your-jira-instance/rest/api/2/user/search?query=" + encoded);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestProperty("Authorization", "Basic YOUR_ENCODED_CREDENTIALS");
+        conn.setRequestMethod("GET");
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        String response = in.lines().collect(Collectors.joining());
+        in.close();
+
+        JSONObject json = new JSONObject(response);
+        JSONArray users = json.getJSONArray("users");
+
+        suggestionPopup.removeAll();
+
+        for (int i = 0; i < users.length(); i++) {
+            JSONObject user = users.getJSONObject(i);
+            String display = user.getString("displayName");
+            String email = user.getString("emailAddress");
+            String name = user.getString("name");
+
+            String fullText = display + ", " + email + " (" + name + ")";
+            JMenuItem item = new JMenuItem(fullText);
+            item.addActionListener(e -> {
+                assigneeField.setText(name); // Or set fullText if you prefer
+                suggestionPopup.setVisible(false);
+            });
+            suggestionPopup.add(item);
+        }
+
+        if (users.length() > 0) {
+            suggestionPopup.show(assigneeField, 0, assigneeField.getHeight());
+        }
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        suggestionPopup.setVisible(false);
+    }
+}
+
