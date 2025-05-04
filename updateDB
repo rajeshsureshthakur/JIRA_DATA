@@ -1,0 +1,56 @@
+public void updateJiraDetails(String key, String newSummary, String originalSummary,
+                              String newStatus, String originalStatus,
+                              String newTimeSpent, String originalTimeSpent) {
+    Connection conn = null;
+    PreparedStatement pstmt = null;
+
+    try {
+        conn = getConnection(); // Replace with your DB connection method
+
+        StringBuilder sql = new StringBuilder("UPDATE jiratable SET ");
+        List<String> updates = new ArrayList<>();
+        List<Object> values = new ArrayList<>();
+
+        if (!Objects.equals(newSummary, originalSummary)) {
+            updates.add("summary = ?");
+            values.add(newSummary);
+        }
+
+        if (!Objects.equals(newStatus, originalStatus)) {
+            updates.add("status = ?");
+            values.add(newStatus);
+        }
+
+        if (!Objects.equals(newTimeSpent, originalTimeSpent)) {
+            updates.add("time_spent = ?");
+            values.add(Double.parseDouble(newTimeSpent)); // or Integer.parseInt() if needed
+        }
+
+        // If no changes, don't update
+        if (updates.isEmpty()) {
+            System.out.println("No changes detected. Skipping update.");
+            return;
+        }
+
+        // Build final SQL
+        sql.append(String.join(", ", updates));
+        sql.append(" WHERE key = ?");
+        values.add(key);
+
+        pstmt = conn.prepareStatement(sql.toString());
+
+        // Bind parameters
+        for (int i = 0; i < values.size(); i++) {
+            pstmt.setObject(i + 1, values.get(i));
+        }
+
+        int rowsUpdated = pstmt.executeUpdate();
+        System.out.println(rowsUpdated + " row(s) updated in DB.");
+
+    } catch (Exception ex) {
+        ex.printStackTrace();
+    } finally {
+        try { if (pstmt != null) pstmt.close(); } catch (Exception ignored) {}
+        try { if (conn != null) conn.close(); } catch (Exception ignored) {}
+    }
+}
