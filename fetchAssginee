@@ -67,3 +67,55 @@ assigneeField.getDocument().addDocumentListener(new DocumentListener() {
         return names;
     }
 });
+
+
+
+private void fetchSuggestions() {
+        String input = assigneeField.getText().trim();
+        if (input.length() < 2) return;
+
+        SwingUtilities.invokeLater(() -> {
+            try {
+                String encodedInput = java.net.URLEncoder.encode(input, "UTF-8");
+                String url = "https://your-jira-url/rest/api/2/user/suggestion?query=" + encodedInput;
+
+                // Make HTTP GET request
+                HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Authorization", "Basic yourBase64EncodedCredentials"); // Replace securely
+                conn.setRequestProperty("Content-Type", "application/json");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    response.append(line);
+                }
+                in.close();
+
+                // Parse JSON response
+                List<String> suggestions = new ArrayList<>();
+                JSONObject json = new JSONObject(response.toString());
+                JSONArray users = json.getJSONArray("users");
+
+                for (int i = 0; i < users.length(); i++) {
+                    JSONObject user = users.getJSONObject(i);
+                    String displayName = user.optString("displayName", "");
+                    String email = user.optString("emailAddress", "");
+                    String name = user.optString("name", "");
+
+                    String formatted = String.format("%s, %s (%s)", displayName, email, name);
+                    suggestions.add(formatted);
+                }
+
+                // Update JComboBox
+                SwingUtilities.invokeLater(() -> {
+                    assigneeDropdown.setModel(new DefaultComboBoxModel<>(suggestions.toArray(new String[0])));
+                    assigneeDropdown.showPopup();
+                });
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+    }
