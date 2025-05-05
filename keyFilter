@@ -1,0 +1,29 @@
+DefaultTableModel model = (DefaultTableModel) jiraTable.getModel();
+TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+jiraTable.setRowSorter(sorter);
+
+// Key filter field (add to your filter panel)
+JTextField keyFilterField = new JTextField(15);
+keyFilterField.setToolTipText("Filter by Key");
+
+// Add DocumentListener to filter live
+keyFilterField.getDocument().addDocumentListener(new DocumentListener() {
+    public void insertUpdate(DocumentEvent e) {
+        filter();
+    }
+    public void removeUpdate(DocumentEvent e) {
+        filter();
+    }
+    public void changedUpdate(DocumentEvent e) {
+        filter();
+    }
+
+    private void filter() {
+        String text = keyFilterField.getText().trim();
+        if (text.length() == 0) {
+            sorter.setRowFilter(null);
+        } else {
+            sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(text), 0)); // 0 = column index for "Key"
+        }
+    }
+});
