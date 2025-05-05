@@ -27,3 +27,28 @@ keyFilterField.getDocument().addDocumentListener(new DocumentListener() {
         }
     }
 });
+
+
+
+
+keySearchField.getDocument().addDocumentListener(new DocumentListener() {
+    public void insertUpdate(DocumentEvent e) { filter(); }
+    public void removeUpdate(DocumentEvent e) { filter(); }
+    public void changedUpdate(DocumentEvent e) { filter(); }
+
+    private void filter() {
+        String text = keySearchField.getText();
+        if (text.trim().length() == 0) {
+            sorter.setRowFilter(null);
+        } else {
+            sorter.setRowFilter(new RowFilter<DefaultTableModel, Integer>() {
+                public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                    String val0 = entry.getStringValue(0).toLowerCase();
+                    String val1 = entry.getStringValue(1).toLowerCase();
+                    return val0.contains(text.toLowerCase()) || val1.contains(text.toLowerCase());
+                }
+            });
+        }
+    }
+});
+
