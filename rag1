@@ -1,0 +1,49 @@
+// Inside fetchDataFromDatabase()
+
+while (rs.next()) {
+    String key = rs.getString("key");
+    Date startDateSql = rs.getDate("start_date");
+    Date endDateSql = rs.getDate("end_date");
+
+    LocalDate today = LocalDate.now();
+    String startDateStr = "";
+    String endDateStr = "";
+    long workingDays = 0;
+    String rag = "";
+
+    if (startDateSql == null && endDateSql == null) {
+        rag = "Not Started";
+    } else {
+        LocalDate startDate = (startDateSql != null) ? startDateSql.toLocalDate() : today;
+        LocalDate endDate = (endDateSql != null) ? endDateSql.toLocalDate() : today;
+
+        startDateStr = startDate.toString();
+        endDateStr = endDate.toString();
+
+        workingDays = ChronoUnit.DAYS.between(startDate, endDate);
+        if (workingDays < 4) {
+            rag = "Green";
+        } else if (workingDays <= 6) {
+            rag = "Amber";
+        } else {
+            rag = "Red";
+        }
+    }
+
+    model.addRow(new Object[]{key, startDateStr, endDateStr, workingDays, rag});
+}
+
+
+if (value.equalsIgnoreCase("Green")) {
+    c.setBackground(new Color(198, 239, 206));
+    c.setForeground(new Color(0, 97, 0));
+} else if (value.equalsIgnoreCase("Amber")) {
+    c.setBackground(new Color(255, 235, 156));
+    c.setForeground(new Color(156, 101, 0));
+} else if (value.equalsIgnoreCase("Red")) {
+    c.setBackground(new Color(255, 199, 206));
+    c.setForeground(new Color(156, 0, 6));
+} else if (value.equalsIgnoreCase("Not Started")) {
+    c.setBackground(Color.LIGHT_GRAY);
+    c.setForeground(Color.DARK_GRAY);
+}
