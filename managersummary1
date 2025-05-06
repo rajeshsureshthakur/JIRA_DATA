@@ -1,3 +1,10 @@
+// Make table header bold
+JTableHeader header = table.getTableHeader();
+header.setFont(header.getFont().deriveFont(Font.BOLD));
+
+table = new JTable(model);
+table.getTableHeader().setFont(table.getTableHeader().getFont().deriveFont(Font.BOLD));
+
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
