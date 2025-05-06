@@ -8,47 +8,41 @@ private void addColorRenderer() {
                     table, value, isSelected, hasFocus, row, column);
 
             cell.setHorizontalAlignment(SwingConstants.CENTER); // center align
+            cell.setForeground(Color.BLACK);
+            cell.setBackground(Color.WHITE); // default background
 
-            Object statusValue = table.getValueAt(row, column);
-            if (statusValue != null && value != null && columnMatchesRag(table.getColumnName(column))) {
-                String text = value.toString().toLowerCase();
+            String colName = table.getColumnName(column).toLowerCase();
 
-                switch (text) {
-                    case "red":
-                        cell.setForeground(Color.RED.darker());
-                        cell.setBackground(new Color(255, 204, 204)); // light red
-                        break;
-                    case "amber":
-                        cell.setForeground(new Color(255, 140, 0)); // dark orange
-                        cell.setBackground(new Color(255, 229, 204)); // light orange
-                        break;
-                    case "green":
-                        cell.setForeground(new Color(0, 128, 0)); // dark green
-                        cell.setBackground(new Color(204, 255, 204)); // light green
-                        break;
-                    case "not started":
-                        cell.setForeground(Color.DARK_GRAY);
-                        cell.setBackground(Color.LIGHT_GRAY);
-                        break;
-                    default:
-                        cell.setForeground(Color.BLACK);
-                        cell.setBackground(Color.WHITE);
+            if (value != null) {
+                // Apply colors only to RAG status columns if value > 0
+                if (colName.contains("red") && toInt(value) > 0) {
+                    cell.setForeground(Color.RED.darker());
+                    cell.setBackground(new Color(255, 204, 204));
+                } else if (colName.contains("amber") && toInt(value) > 0) {
+                    cell.setForeground(new Color(255, 140, 0));
+                    cell.setBackground(new Color(255, 229, 204));
+                } else if (colName.contains("green") && toInt(value) > 0) {
+                    cell.setForeground(new Color(0, 128, 0));
+                    cell.setBackground(new Color(204, 255, 204));
+                } else if (colName.contains("not started") && toInt(value) > 0) {
+                    cell.setForeground(Color.DARK_GRAY);
+                    cell.setBackground(Color.LIGHT_GRAY);
                 }
-            } else {
-                cell.setForeground(Color.BLACK);
-                cell.setBackground(Color.WHITE);
             }
 
             return cell;
         }
 
-        private boolean columnMatchesRag(String columnName) {
-            return columnName.equalsIgnoreCase("RAG") || columnName.equalsIgnoreCase("Red")
-                || columnName.equalsIgnoreCase("Amber") || columnName.equalsIgnoreCase("Green")
-                || columnName.equalsIgnoreCase("Not Started");
+        private int toInt(Object val) {
+            try {
+                return Integer.parseInt(val.toString());
+            } catch (Exception e) {
+                return 0;
+            }
         }
     });
 }
+
 
 
 
