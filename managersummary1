@@ -1,3 +1,58 @@
+private void addColorRenderer() {
+    table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            
+            JLabel cell = (JLabel) super.getTableCellRendererComponent(
+                    table, value, isSelected, hasFocus, row, column);
+
+            cell.setHorizontalAlignment(SwingConstants.CENTER); // center align
+
+            Object statusValue = table.getValueAt(row, column);
+            if (statusValue != null && value != null && columnMatchesRag(table.getColumnName(column))) {
+                String text = value.toString().toLowerCase();
+
+                switch (text) {
+                    case "red":
+                        cell.setForeground(Color.RED.darker());
+                        cell.setBackground(new Color(255, 204, 204)); // light red
+                        break;
+                    case "amber":
+                        cell.setForeground(new Color(255, 140, 0)); // dark orange
+                        cell.setBackground(new Color(255, 229, 204)); // light orange
+                        break;
+                    case "green":
+                        cell.setForeground(new Color(0, 128, 0)); // dark green
+                        cell.setBackground(new Color(204, 255, 204)); // light green
+                        break;
+                    case "not started":
+                        cell.setForeground(Color.DARK_GRAY);
+                        cell.setBackground(Color.LIGHT_GRAY);
+                        break;
+                    default:
+                        cell.setForeground(Color.BLACK);
+                        cell.setBackground(Color.WHITE);
+                }
+            } else {
+                cell.setForeground(Color.BLACK);
+                cell.setBackground(Color.WHITE);
+            }
+
+            return cell;
+        }
+
+        private boolean columnMatchesRag(String columnName) {
+            return columnName.equalsIgnoreCase("RAG") || columnName.equalsIgnoreCase("Red")
+                || columnName.equalsIgnoreCase("Amber") || columnName.equalsIgnoreCase("Green")
+                || columnName.equalsIgnoreCase("Not Started");
+        }
+    });
+}
+
+
+
+
 // Make table header bold
 JTableHeader header = table.getTableHeader();
 header.setFont(header.getFont().deriveFont(Font.BOLD));
