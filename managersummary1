@@ -1,3 +1,5 @@
+GET https://your-domain.atlassian.net/rest/api/2/search?jql=assignee=rajk89 AND updated >= -26w AND fixVersion IS NOT EMPTY&fields=fixVersion
+
 private void addColorRenderer() {
     table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
         @Override
