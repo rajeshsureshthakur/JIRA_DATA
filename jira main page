@@ -1,0 +1,94 @@
+private String selectedFixVersion = null;  // To store selected release globally
+
+private JPanel createJiraScreen(String assignee) {
+    JPanel jiraPanel = new JPanel();
+    jiraPanel.setLayout(new BoxLayout(jiraPanel, BoxLayout.Y_AXIS));
+    
+    JLabel titleLabel = new JLabel("JIRA Dashboard");
+    titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+    titleLabel.setFont(new Font("Arial", Font.BOLD, 28));
+
+    // Vertical spacing
+    jiraPanel.add(Box.createVerticalStrut(20));
+    jiraPanel.add(titleLabel);
+    jiraPanel.add(Box.createVerticalStrut(20));
+
+    // Fix Version dropdown
+    JComboBox<String> fixVersionDropdown = new JComboBox<>();
+    fixVersionDropdown.setMaximumSize(new Dimension(300, 30));
+    fixVersionDropdown.setAlignmentX(Component.CENTER_ALIGNMENT);
+    fixVersionDropdown.addItem("Select Release");
+
+    // Fetch unique fixVersions from DB
+    Set<String> fixVersions = getFixVersionsForAssignee(assignee);
+    for (String fv : fixVersions) {
+        fixVersionDropdown.addItem(fv);
+    }
+
+    jiraPanel.add(fixVersionDropdown);
+    jiraPanel.add(Box.createVerticalStrut(30));
+
+    // Button Panel (initially hidden)
+    JPanel buttonPanel = new JPanel();
+    buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
+    buttonPanel.setVisible(false);
+
+    Dimension buttonSize = new Dimension(240, 48);
+    String[] buttonLabels = {
+        "Create Task/Defect",
+        "Manage My Tasks",
+        "Efforts Data",
+        "Task Aging View",
+        "Team Efforts View",
+        "Task Aging Report"
+    };
+
+    for (String label : buttonLabels) {
+        JButton button = new JButton(label);
+        button.setMaximumSize(buttonSize);
+        button.setPreferredSize(buttonSize);
+        button.setAlignmentX(Component.CENTER_ALIGNMENT);
+        button.setFont(new Font("Arial", Font.PLAIN, 14));
+        button.addActionListener(e -> handleJiraAction(label, selectedFixVersion));
+        buttonPanel.add(Box.createVerticalStrut(10));
+        buttonPanel.add(button);
+    }
+
+    jiraPanel.add(buttonPanel);
+
+    // On dropdown selection
+    fixVersionDropdown.addActionListener(e -> {
+        String selected = (String) fixVersionDropdown.getSelectedItem();
+        if (!"Select Release".equals(selected)) {
+            selectedFixVersion = selected;
+            buttonPanel.setVisible(true);
+            jiraPanel.revalidate();
+            jiraPanel.repaint();
+        } else {
+            selectedFixVersion = null;
+            buttonPanel.setVisible(false);
+        }
+    });
+
+    return jiraPanel;
+}
+
+
+private Set<String> getFixVersionsForAssignee(String assignee) {
+    Set<String> fixVersions = new HashSet<>();
+    String query = "SELECT DISTINCT fix_version FROM jiradata WHERE assignee = ?";
+    try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+         PreparedStatement ps = conn.prepareStatement(query)) {
+        ps.setString(1, assignee);
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            String version = rs.getString("fix_version");
+            if (version != null && !version.trim().isEmpty()) {
+                fixVersions.add(version.trim());
+            }
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+    return fixVersions;
+}
