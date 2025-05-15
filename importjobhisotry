@@ -1,0 +1,85 @@
+import javax.swing.*;
+import javax.swing.table.*;
+import java.awt.*;
+import java.sql.*;
+import java.util.Vector;
+
+public class ImportHistoryScreen extends JFrame {
+
+    public ImportHistoryScreen(String userId, Connection conn) {
+        setTitle("Import History");
+        setSize(800, 400);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        // Column names
+        String[] columnNames = {"Job Name", "Job ID", "Job Date", "Job Status"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+        JTable table = new JTable(model);
+
+        // Custom cell renderer for job_status
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                String status = table.getValueAt(row, 3).toString();
+
+                // Apply background and foreground based on status
+                if (column == 3) {
+                    switch (status) {
+                        case "Failed":
+                            c.setBackground(new Color(255, 204, 204)); // light red
+                            c.setForeground(new Color(153, 0, 0));     // dark red
+                            break;
+                        case "Success":
+                            c.setBackground(new Color(204, 255, 204)); // light green
+                            c.setForeground(new Color(0, 102, 0));     // dark green
+                            break;
+                        case "Queued":
+                            c.setBackground(Color.LIGHT_GRAY);
+                            c.setForeground(Color.DARK_GRAY);
+                            break;
+                        case "In Progress":
+                            c.setBackground(new Color(255, 229, 180)); // light amber
+                            c.setForeground(new Color(153, 102, 0));   // dark amber
+                            break;
+                        default:
+                            c.setBackground(Color.WHITE);
+                            c.setForeground(Color.BLACK);
+                    }
+                } else {
+                    c.setBackground(Color.WHITE);
+                    c.setForeground(Color.BLACK);
+                }
+
+                return c;
+            }
+        });
+
+        // Load data from DB
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT job_name, job_id, job_date, job_status FROM importhistory WHERE user_id = ?")) {
+
+            ps.setString(1, userId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Vector<Object> row = new Vector<>();
+                row.add(rs.getString("job_name"));
+                row.add(rs.getInt("job_id"));
+                row.add(rs.getDate("job_date"));
+                row.add(rs.getString("job_status"));
+                model.addRow(row);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading import history.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        add(new JScrollPane(table));
+        setVisible(true);
+    }
+}
