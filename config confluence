@@ -1,0 +1,97 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.Vector;
+
+public class ConfigureConfluenceScreen extends JFrame {
+    private Connection conn;
+    private JTextField releaseIdField;
+    private JComboBox<String> releaseIdDropdown;
+
+    public ConfigureConfluenceScreen(Connection conn) {
+        this.conn = conn;
+        setTitle("Configure Confluence");
+        setSize(500, 250);
+        setLocationRelativeTo(null);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+
+        // START section
+        JLabel startLabel = new JLabel("START:");
+        gbc.gridx = 0; gbc.gridy = 0;
+        add(startLabel, gbc);
+
+        releaseIdField = new JTextField("Enter Zephyr Release id", 20);
+        releaseIdField.setForeground(Color.GRAY);
+        releaseIdField.addFocusListener(new FocusAdapter() {
+            public void focusGained(FocusEvent e) {
+                if (releaseIdField.getText().equals("Enter Zephyr Release id")) {
+                    releaseIdField.setText("");
+                    releaseIdField.setForeground(Color.BLACK);
+                }
+            }
+            public void focusLost(FocusEvent e) {
+                if (releaseIdField.getText().isEmpty()) {
+                    releaseIdField.setForeground(Color.GRAY);
+                    releaseIdField.setText("Enter Zephyr Release id");
+                }
+            }
+        });
+        gbc.gridx = 1;
+        add(releaseIdField, gbc);
+
+        JButton startBtn = new JButton("START");
+        startBtn.addActionListener(e -> handleStart());
+        gbc.gridx = 2;
+        add(startBtn, gbc);
+
+        // STOP section
+        JLabel stopLabel = new JLabel("STOP:");
+        gbc.gridx = 0; gbc.gridy = 1;
+        add(stopLabel, gbc);
+
+        releaseIdDropdown = new JComboBox<>();
+        loadReleaseIds();  // Populate dropdown
+        gbc.gridx = 1;
+        add(releaseIdDropdown, gbc);
+
+        JButton stopBtn = new JButton("STOP");
+        stopBtn.addActionListener(e -> handleStop());
+        gbc.gridx = 2;
+        add(stopBtn, gbc);
+
+        // BACK button
+        JButton backBtn = new JButton("Back");
+        backBtn.addActionListener(e -> dispose());
+        gbc.gridx = 1; gbc.gridy = 2;
+        add(backBtn, gbc);
+
+        setVisible(true);
+    }
+
+    private void handleStart() {
+        String input = releaseIdField.getText().trim();
+        if (input.isEmpty() || input.equals("Enter Zephyr Release id")) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid release ID.");
+            return;
+        }
+        try (PreparedStatement ps = conn.prepareStatement("UPDATE releases SET zephyr_flag='Y' WHERE release_id = ?")) {
+            ps.setString(1, input);
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                JOptionPane.showMessageDialog(this, "Zephyr STARTED for Release ID: " + input);
+                loadReleaseIds();  // refresh dropdown
+            } else {
+                JOptionPane.showMessageDialog(this, "Release ID not found.");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Database error during START.");
+        }
+    }
+
+    private void handleStop() {
+        String selected = (String) releaseIdDropdown
