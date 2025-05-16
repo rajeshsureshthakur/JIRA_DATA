@@ -179,3 +179,18 @@ private void handleStop() {
         JOptionPane.showMessageDialog(this, "Database error during STOP.");
     }
 }
+
+
+// Set fixed size for dropdown
+releaseIdDropdown.setPreferredSize(new Dimension(200, 25));
+
+// Add tooltip to show full release name
+releaseIdDropdown.setRenderer(new DefaultListCellRenderer() {
+    @Override
+    public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                  boolean isSelected, boolean cellHasFocus) {
+        JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+        label.setToolTipText(value.toString()); // show full name on hover
+        return label;
+    }
+});
