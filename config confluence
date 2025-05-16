@@ -126,3 +126,56 @@ public class ConfigureConfluenceScreen extends JFrame {
         }
     }
 }
+
+
+
+
+
+
+
+private Map<String, String> releaseNameToIdMap = new HashMap<>();
+
+private void loadReleaseIds() {
+    releaseIdDropdown.removeAllItems();
+    releaseNameToIdMap.clear();
+
+    try (PreparedStatement ps = conn.prepareStatement(
+            "SELECT release_id, release_name FROM releases WHERE zephyr_flag = 'Y'");
+         ResultSet rs = ps.executeQuery()) {
+
+        while (rs.next()) {
+            String id = rs.getString("release_id");
+            String name = rs.getString("release_name");
+            releaseNameToIdMap.put(name, id);
+            releaseIdDropdown.addItem(name);  // show release name in dropdown
+        }
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+
+private void handleStop() {
+    String selectedName = (String) releaseIdDropdown.getSelectedItem();
+    if (selectedName == null) {
+        JOptionPane.showMessageDialog(this, "Please select a release.");
+        return;
+    }
+
+    String releaseId = releaseNameToIdMap.get(selectedName);  // Get ID for DB update
+
+    try (PreparedStatement ps = conn.prepareStatement(
+            "UPDATE releases SET zephyr_flag='N' WHERE release_id = ?")) {
+        ps.setString(1, releaseId);
+        int updated = ps.executeUpdate();
+        if (updated > 0) {
+            JOptionPane.showMessageDialog(this, "Zephyr STOPPED for: " + selectedName);
+            loadReleaseIds();  // refresh dropdown
+        } else {
+            JOptionPane.showMessageDialog(this, "Release not found.");
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Database error during STOP.");
+    }
+}
