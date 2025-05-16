@@ -94,4 +94,35 @@ public class ConfigureConfluenceScreen extends JFrame {
     }
 
     private void handleStop() {
-        String selected = (String) releaseIdDropdown
+        String selected = (String) releaseIdDropdown.getSelectedItem();
+        if (selected == null) {
+            JOptionPane.showMessageDialog(this, "Please select a release ID.");
+            return;
+        }
+        try (PreparedStatement ps = conn.prepareStatement("UPDATE releases SET zephyr_flag='N' WHERE release_id = ?")) {
+            ps.setString(1, selected);
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                JOptionPane.showMessageDialog(this, "Zephyr STOPPED for Release ID: " + selected);
+                loadReleaseIds();  // refresh dropdown
+            } else {
+                JOptionPane.showMessageDialog(this, "Release ID not found.");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Database error during STOP.");
+        }
+    }
+
+    private void loadReleaseIds() {
+        releaseIdDropdown.removeAllItems();
+        try (PreparedStatement ps = conn.prepareStatement("SELECT release_id FROM releases WHERE zephyr_flag = 'Y'");
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                releaseIdDropdown.addItem(rs.getString("release_id"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
