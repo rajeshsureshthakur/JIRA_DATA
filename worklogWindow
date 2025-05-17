@@ -1,3 +1,16 @@
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.sql.Timestamp;
+
+// Example format: "2024-05-20 14:30:00"
+SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+Date parsedDate = inputFormat.parse(date);  // 'date' is your string with date+time
+
+Timestamp sqlTimestamp = new Timestamp(parsedDate.getTime());
+insertStmt.setTimestamp(3, sqlTimestamp);
+
+
+
 private void loadWorkLoadData(String key) {
     try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD)) {
         String query = "SELECT log_date, SUM(log_seconds) as total_seconds " +
