@@ -1,0 +1,11 @@
+table.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                    boolean hasFocus, int row, int column) {
+        Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+        if (c instanceof JComponent) {
+            ((JComponent) c).setToolTipText(value != null ? value.toString() : "");
+        }
+        return c;
+    }
+});
