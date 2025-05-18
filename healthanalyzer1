@@ -1,0 +1,111 @@
+private void loadHealthAnalyzerView() {
+    model.setColumnIdentifiers(new Object[]{"Type", "Item", "Total Hours", "Status", "Suggestion"});
+    model.setRowCount(0);
+
+    Map<String, Double> hoursByDate = new TreeMap<>();
+    Map<String, Double> hoursByKey = new TreeMap<>();
+    List<String[]> overbookedItems = new ArrayList<>();
+    List<String[]> underbookedItems = new ArrayList<>();
+
+    for (Object[] row : originalData) {
+        String key = row[0].toString();
+        int seconds = (int) row[2];
+        double hours = seconds / 3600.0;
+        String[] dates = row[3].toString().split(",");
+
+        hoursByKey.merge(key, hours, Double::sum);
+        for (String date : dates) {
+            hoursByDate.merge(date, hours, Double::sum);
+        }
+    }
+
+    for (Map.Entry<String, Double> entry : hoursByKey.entrySet()) {
+        String key = entry.getKey();
+        double hours = entry.getValue();
+        String status = getStatus(hours);
+
+        if ("Underbooked".equals(status)) underbookedItems.add(new String[]{"Key", key, String.valueOf(hours)});
+        else if ("Overbooked".equals(status)) overbookedItems.add(new String[]{"Key", key, String.valueOf(hours)});
+
+        String suggestion = getSmartSuggestion(hours, "Key", key, overbookedItems);
+        model.addRow(new Object[]{"Key", key, String.format("%.2f", hours), status, suggestion});
+    }
+
+    for (Map.Entry<String, Double> entry : hoursByDate.entrySet()) {
+        String date = entry.getKey();
+        double hours = entry.getValue();
+        String status = getStatus(hours);
+
+        if ("Underbooked".equals(status)) underbookedItems.add(new String[]{"Date", date, String.valueOf(hours)});
+        else if ("Overbooked".equals(status)) overbookedItems.add(new String[]{"Date", date, String.valueOf(hours)});
+
+        String suggestion = getSmartSuggestion(hours, "Date", date, overbookedItems);
+        model.addRow(new Object[]{"Date", date, String.format("%.2f", hours), status, suggestion});
+    }
+
+    table.setModel(model);
+    applyHealthAnalyzerFormatting();
+    table.revalidate();
+    table.repaint();
+}
+
+private String getStatus(double hours) {
+    if (hours < 6.5) return "Underbooked";
+    if (hours > 9) return "Overbooked";
+    return "Balanced";
+}
+
+private String getSmartSuggestion(double hours, String type, String item, List<String[]> overbookedItems) {
+    if (hours < 6.5 && !overbookedItems.isEmpty()) {
+        StringBuilder donors = new StringBuilder();
+        for (String[] donor : overbookedItems) {
+            if (!donor[1].equals(item)) {
+                donors.append(donor[1]).append(" (").append(donor[0]).append(") ");
+                break;  // just suggest one donor
+            }
+        }
+        if (donors.length() > 0) {
+            return "Add hours from " + donors.toString().trim();
+        } else {
+            return "Consider redistributing from overbooked items.";
+        }
+    }
+    if (hours > 9) return "Reduce hours if possible to balance effort.";
+    return "-";
+}
+
+private void applyHealthAnalyzerFormatting() {
+    TableColumnModel columnModel = table.getColumnModel();
+
+    // Custom cell renderer with color highlighting
+    DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                        boolean isSelected, boolean hasFocus,
+                                                        int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            String status = table.getValueAt(row, 3).toString();
+            if ("Overbooked".equals(status)) {
+                c.setBackground(new Color(255, 204, 204));  // light red
+            } else if ("Underbooked".equals(status)) {
+                c.setBackground(new Color(255, 255, 204));  // light yellow
+            } else {
+                c.setBackground(Color.WHITE);
+            }
+            setHorizontalAlignment(SwingConstants.CENTER);
+            return c;
+        }
+    };
+
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        columnModel.getColumn(i).setCellRenderer(renderer);
+    }
+
+    columnModel.getColumn(0).setPreferredWidth(60);  // Type
+    columnModel.getColumn(1).setPreferredWidth(150); // Item (Date/Key)
+    columnModel.getColumn(2).setPreferredWidth(100); // Hours
+    columnModel.getColumn(3).setPreferredWidth(120); // Status
+    columnModel.getColumn(4).setPreferredWidth(300); // Suggestion
+
+    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+} 
