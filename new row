@@ -1,0 +1,12 @@
+JButton addRowButton = new JButton("Add Row");
+buttonPanel.add(addRowButton);
+
+
+addRowButton.addActionListener(e -> {
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    String now = sdf.format(new java.util.Date());
+
+    JTextField inputField = new JTextField();  // This will be editable in table
+
+    model.addRow(new Object[]{now, "", inputField});
+});
