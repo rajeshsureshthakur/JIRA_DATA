@@ -1,3 +1,40 @@
+private void applyDateViewFormatting() {
+    DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+    centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+
+    TableColumnModel columnModel = table.getColumnModel();
+
+    // Apply center alignment to all columns
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        columnModel.getColumn(i).setCellRenderer(centerRenderer);
+    }
+
+    // Set preferred column widths
+    columnModel.getColumn(0).setPreferredWidth(150);  // Date
+    columnModel.getColumn(1).setPreferredWidth(400);  // Keys
+    columnModel.getColumn(2).setPreferredWidth(150);  // Total Logged Hours
+
+    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+    // Custom renderer for seconds to hours in column 2
+    DefaultTableCellRenderer hoursRenderer = new DefaultTableCellRenderer() {
+        @Override
+        public void setValue(Object value) {
+            try {
+                int seconds = (value == null || value.toString().trim().isEmpty()) ? 0 : Integer.parseInt(value.toString().trim());
+                double hours = seconds / 3600.0;
+                super.setValue(String.format("%.2f", hours));
+            } catch (NumberFormatException e) {
+                super.setValue("0.00");
+            }
+        }
+    };
+    hoursRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+    columnModel.getColumn(2).setCellRenderer(hoursRenderer);  // Apply to hours column
+}
+
+
+
 System.out.println("Switching to KEY view...");
 table.setModel(model);
 System.out.println("Set model to KEY, first column: " + table.getModel().getColumnName(0));
