@@ -1,0 +1,121 @@
+JComboBox<String> viewDropdown = new JComboBox<>(new String[]{"Show by Key", "Show by Date"});
+filterPanel.add(new JLabel("View Mode:"));
+filterPanel.add(viewDropdown);
+
+
+private DefaultTableModel keyModel;
+private DefaultTableModel dateModel;
+
+keyModel = new DefaultTableModel(new String[]{"Key", "Log Estimate", "Total Logged Seconds"}, 0);
+
+dateModel = new DefaultTableModel(new String[]{"Date", "Keys", "Total Logged Seconds"}, 0);
+
+table.setModel(keyModel);  // default view
+
+viewDropdown.addActionListener(e -> {
+    String selectedView = (String) viewDropdown.getSelectedItem();
+    if ("Show by Key".equals(selectedView)) {
+        table.setModel(keyModel);
+        refreshTable(originalData);  // Your current method
+    } else {
+        table.setModel(dateModel);
+        loadByDateData(); // Method to populate new date-based view
+    }
+});
+
+
+private void loadByDateData() {
+    dateModel.setRowCount(0);
+    Map<String, Set<String>> dateToKeys = new TreeMap<>();
+    Map<String, Integer> dateToSeconds = new HashMap<>();
+
+    for (Object[] row : originalData) {
+        String[] dates = row[3].toString().split(",");
+        String key = row[0].toString();
+        int seconds = (int) row[2];
+
+        for (String date : dates) {
+            dateToKeys.computeIfAbsent(date, d -> new TreeSet<>()).add(key);
+            dateToSeconds.merge(date, seconds, Integer::sum);
+        }
+    }
+
+    for (String date : dateToKeys.keySet()) {
+        String keyList = String.join(",", dateToKeys.get(date));
+        int totalSeconds = dateToSeconds.get(date);
+        dateModel.addRow(new Object[]{date, keyList, totalSeconds});
+    }
+}
+
+
+----------filter-------
+
+filterButton.addActionListener(e -> {
+    String selectedView = (String) viewDropdown.getSelectedItem();
+    if ("Show by Key".equals(selectedView)) {
+        applyDateFilterForKeyView();
+    } else {
+        applyDateFilterForDateView();
+    }
+});
+
+
+private void applyDateFilterForKeyView() {
+    String start = startDateField.getText().trim();
+    String end = endDateField.getText().trim();
+
+    if (start.isEmpty() || end.isEmpty()) {
+        refreshTable(originalData); // existing method for full load
+        return;
+    }
+
+    List<Object[]> filtered = new ArrayList<>();
+    for (Object[] row : originalData) {
+        String[] dates = row[3].toString().split(",");
+        for (String date : dates) {
+            if (date.compareTo(start) >= 0 && date.compareTo(end) <= 0) {
+                filtered.add(row);
+                break;
+            }
+        }
+    }
+
+    refreshTable(filtered);
+}
+
+
+private void applyDateFilterForDateView() {
+    String start = startDateField.getText().trim();
+    String end = endDateField.getText().trim();
+
+    if (start.isEmpty() || end.isEmpty()) {
+        loadByDateData(); // show full data
+        return;
+    }
+
+    dateModel.setRowCount(0); // Clear old rows
+
+    Map<String, Set<String>> dateToKeys = new TreeMap<>();
+    Map<String, Integer> dateToSeconds = new HashMap<>();
+
+    for (Object[] row : originalData) {
+        String[] dates = row[3].toString().split(",");
+        String key = row[0].toString();
+        int seconds = (int) row[2];
+
+        for (String date : dates) {
+            if (date.compareTo(start) >= 0 && date.compareTo(end) <= 0) {
+                dateToKeys.computeIfAbsent(date, d -> new TreeSet<>()).add(key);
+                dateToSeconds.merge(date, seconds, Integer::sum);
+            }
+        }
+    }
+
+    for (String date : dateToKeys.keySet()) {
+        String keyList = String.join(",", dateToKeys.get(date));
+        int totalSeconds = dateToSeconds.get(date);
+        dateModel.addRow(new Object[]{date, keyList, totalSeconds});
+    }
+}
+
+
