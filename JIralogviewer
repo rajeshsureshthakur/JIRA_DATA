@@ -1,3 +1,38 @@
+private void applyDateFilter() {
+    String start = startDateField.getText().trim();
+    String end = endDateField.getText().trim();
+
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+    sdf.setLenient(false);
+
+    try {
+        Date startDate = sdf.parse(start);
+        Date endDate = sdf.parse(end);
+
+        List<Object[]> filtered = new ArrayList<>();
+
+        for (Object[] row : originalData) {
+            String[] dates = row[3].toString().split(",");
+            for (String dateStr : dates) {
+                Date logDate = sdf.parse(dateStr);
+                if (!logDate.before(startDate) && !logDate.after(endDate)) {
+                    filtered.add(row);
+                    break; // no need to check more dates for this row
+                }
+            }
+        }
+
+        refreshTable(filtered);
+    } catch (Exception ex) {
+        JOptionPane.showMessageDialog(this, "Please enter valid dates in yyyy-MM-dd format.", "Invalid Input", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+
+
+
+
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
