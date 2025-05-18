@@ -1,3 +1,22 @@
+System.out.println("Switching to KEY view...");
+table.setModel(model);
+System.out.println("Set model to KEY, first column: " + table.getModel().getColumnName(0));
+System.out.println("Row count in model: " + model.getRowCount());
+
+refreshTable(originalData);  // reload the rows
+
+// Re-check model after refresh
+System.out.println("After refreshTable, column 0: " + table.getModel().getColumnName(0));
+System.out.println("After refreshTable, row count: " + model.getRowCount());
+
+// Optional: print first few rows to confirm actual data
+for (int i = 0; i < Math.min(3, model.getRowCount()); i++) {
+    System.out.println("Row " + i + ": " + model.getValueAt(i, 0) + ", " + model.getValueAt(i, 1));
+}
+
+
+
+
 JComboBox<String> viewDropdown = new JComboBox<>(new String[]{"Show by Key", "Show by Date"});
 filterPanel.add(new JLabel("View Mode:"));
 filterPanel.add(viewDropdown);
