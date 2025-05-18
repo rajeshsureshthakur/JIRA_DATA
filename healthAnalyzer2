@@ -1,0 +1,143 @@
+private void loadHealthAnalyzerView() {
+    model.setColumnIdentifiers(new Object[]{"Type", "Item", "Total Hours", "Status", "Suggestion"});
+    model.setRowCount(0);
+
+    Map<String, Double> hoursByDate = new TreeMap<>();
+    Map<String, Double> hoursByKey = new TreeMap<>();
+    Map<String, String> statusByKey = new HashMap<>();
+    Map<String, String> statusByDate = new HashMap<>();
+
+    for (Object[] row : originalData) {
+        String key = row[0].toString();
+        int seconds = (int) row[2];
+        double hours = seconds / 3600.0;
+        String[] dates = row[3].toString().split(",");
+
+        hoursByKey.merge(key, hours, Double::sum);
+        for (String date : dates) {
+            hoursByDate.merge(date, hours, Double::sum);
+        }
+    }
+
+    // Store status
+    for (Map.Entry<String, Double> entry : hoursByKey.entrySet()) {
+        statusByKey.put(entry.getKey(), getStatus(entry.getValue()));
+    }
+    for (Map.Entry<String, Double> entry : hoursByDate.entrySet()) {
+        statusByDate.put(entry.getKey(), getStatus(entry.getValue()));
+    }
+
+    for (Map.Entry<String, Double> entry : hoursByKey.entrySet()) {
+        String key = entry.getKey();
+        double hours = entry.getValue();
+        String status = statusByKey.get(key);
+        String suggestion = generateAISuggestion("Key", key, hours, status, hoursByDate, statusByDate);
+        model.addRow(new Object[]{"Key", key, String.format("%.2f", hours), status, suggestion});
+    }
+
+    for (Map.Entry<String, Double> entry : hoursByDate.entrySet()) {
+        String date = entry.getKey();
+        double hours = entry.getValue();
+        String status = statusByDate.get(date);
+        String suggestion = generateAISuggestion("Date", date, hours, status, hoursByKey, statusByKey);
+        model.addRow(new Object[]{"Date", date, String.format("%.2f", hours), status, suggestion});
+    }
+
+    table.setModel(model);
+    applyHealthAnalyzerFormatting();
+    table.revalidate();
+    table.repaint();
+}
+
+private String getStatus(double hours) {
+    if (hours < 6.5) return "Underbooked";
+    if (hours > 9) return "Overbooked";
+    return "Balanced";
+}
+
+private String generateAISuggestion(String currentType, String currentItem, double currentHours, String currentStatus,
+                                    Map<String, Double> counterpartHours, Map<String, String> counterpartStatus) {
+    StringBuilder suggestion = new StringBuilder();
+    double ideal = 8.0;
+
+    if ("Underbooked".equals(currentStatus)) {
+        double deficit = ideal - currentHours;
+        List<String> donors = new ArrayList<>();
+        for (Map.Entry<String, Double> entry : counterpartHours.entrySet()) {
+            String item = entry.getKey();
+            double hrs = entry.getValue();
+            String status = counterpartStatus.get(item);
+            if ("Overbooked".equals(status) && !item.equals(currentItem)) {
+                double surplus = hrs - ideal;
+                if (surplus >= 1.0) {
+                    donors.add(item + " (-" + String.format("%.1f", surplus) + "h)");
+                }
+            }
+        }
+        if (!donors.isEmpty()) {
+            suggestion.append("Consider moving ").append(String.format("%.1f", deficit)).append("h from ")
+                      .append(String.join(", ", donors)).append(" to this ").append(currentType.toLowerCase()).append(".");
+        } else {
+            suggestion.append("Log more time here to reach optimal workload.");
+        }
+    } else if ("Overbooked".equals(currentStatus)) {
+        double surplus = currentHours - ideal;
+        List<String> receivers = new ArrayList<>();
+        for (Map.Entry<String, Double> entry : counterpartHours.entrySet()) {
+            String item = entry.getKey();
+            double hrs = entry.getValue();
+            String status = counterpartStatus.get(item);
+            if ("Underbooked".equals(status) && !item.equals(currentItem)) {
+                double deficit = ideal - hrs;
+                if (deficit >= 1.0) {
+                    receivers.add(item + " (+" + String.format("%.1f", deficit) + "h)");
+                }
+            }
+        }
+        if (!receivers.isEmpty()) {
+            suggestion.append("Try moving ").append(String.format("%.1f", surplus)).append("h to ")
+                      .append(String.join(", ", receivers)).append(".");
+        } else {
+            suggestion.append("Reduce hours here if possible.");
+        }
+    } else {
+        suggestion.append("-");
+    }
+    return suggestion.toString();
+}
+
+private void applyHealthAnalyzerFormatting() {
+    TableColumnModel columnModel = table.getColumnModel();
+
+    // Custom cell renderer with color highlighting
+    DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                        boolean isSelected, boolean hasFocus,
+                                                        int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            String status = table.getValueAt(row, 3).toString();
+            if ("Overbooked".equals(status)) {
+                c.setBackground(new Color(255, 204, 204));  // light red
+            } else if ("Underbooked".equals(status)) {
+                c.setBackground(new Color(255, 255, 204));  // light yellow
+            } else {
+                c.setBackground(Color.WHITE);
+            }
+            setHorizontalAlignment(SwingConstants.CENTER);
+            return c;
+        }
+    };
+
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        columnModel.getColumn(i).setCellRenderer(renderer);
+    }
+
+    columnModel.getColumn(0).setPreferredWidth(60);  // Type
+    columnModel.getColumn(1).setPreferredWidth(150); // Item (Date/Key)
+    columnModel.getColumn(2).setPreferredWidth(100); // Hours
+    columnModel.getColumn(3).setPreferredWidth(120); // Status
+    columnModel.getColumn(4).setPreferredWidth(300); // Suggestion
+
+    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+}
