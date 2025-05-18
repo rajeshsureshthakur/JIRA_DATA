@@ -1,0 +1,83 @@
+new JComboBox<>(new String[]{"Key view", "Date view", "Log Health Analyzer"})
+
+if ("Log Health Analyzer".equals(selectedView)) {
+    loadHealthAnalyzerView();
+}
+
+
+private void loadHealthAnalyzerView() {
+    // Set up column headers: Date/Key | Total Hours | Status | Suggestion
+    model.setColumnIdentifiers(new Object[]{"Type", "Item", "Total Hours", "Status", "Suggestion"});
+    model.setRowCount(0);
+
+    Map<String, Double> hoursByDate = new TreeMap<>();
+    Map<String, Double> hoursByKey = new TreeMap<>();
+
+    for (Object[] row : originalData) {
+        String key = row[0].toString();
+        int seconds = (int) row[2];
+        double hours = seconds / 3600.0;
+        String[] dates = row[3].toString().split(",");
+
+        // Sum by key
+        hoursByKey.merge(key, hours, Double::sum);
+
+        // Sum by date
+        for (String date : dates) {
+            hoursByDate.merge(date, hours, Double::sum);
+        }
+    }
+
+    // Analyze and populate Key-based rows
+    for (Map.Entry<String, Double> entry : hoursByKey.entrySet()) {
+        String key = entry.getKey();
+        double hours = entry.getValue();
+        String status = getStatus(hours);
+        String suggestion = getSuggestion(hours, "key", key);
+        model.addRow(new Object[]{"Key", key, String.format("%.2f", hours), status, suggestion});
+    }
+
+    // Analyze and populate Date-based rows
+    for (Map.Entry<String, Double> entry : hoursByDate.entrySet()) {
+        String date = entry.getKey();
+        double hours = entry.getValue();
+        String status = getStatus(hours);
+        String suggestion = getSuggestion(hours, "date", date);
+        model.addRow(new Object[]{"Date", date, String.format("%.2f", hours), status, suggestion});
+    }
+
+    table.setModel(model);
+    applyHealthAnalyzerFormatting();
+    table.revalidate();
+    table.repaint();
+}
+
+private String getStatus(double hours) {
+    if (hours < 6.5) return "Underbooked";
+    if (hours > 9) return "Overbooked";
+    return "Balanced";
+}
+
+private String getSuggestion(double hours, String type, String item) {
+    if (hours < 6.5) return "Add " + String.format("%.1f", (8 - hours)) + " hrs to " + type + " " + item;
+    if (hours > 9) return "Reduce hours on " + type + " " + item;
+    return "-";
+}
+
+private void applyHealthAnalyzerFormatting() {
+    DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+    centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+    TableColumnModel columnModel = table.getColumnModel();
+
+    for (int i = 0; i < columnModel.getColumnCount(); i++) {
+        columnModel.getColumn(i).setCellRenderer(centerRenderer);
+    }
+
+    columnModel.getColumn(0).setPreferredWidth(60);  // Type
+    columnModel.getColumn(1).setPreferredWidth(150); // Item (Date/Key)
+    columnModel.getColumn(2).setPreferredWidth(100); // Hours
+    columnModel.getColumn(3).setPreferredWidth(120); // Status
+    columnModel.getColumn(4).setPreferredWidth(300); // Suggestion
+
+    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+}
