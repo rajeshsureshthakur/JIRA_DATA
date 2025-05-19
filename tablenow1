@@ -1,0 +1,135 @@
+// Rewritten: dual-table view with double-click popup for logging hours
+private void loadHealthAnalyzerView() {
+    DefaultTableModel fixedModel = new DefaultTableModel();
+    DefaultTableModel scrollModel = new DefaultTableModel();
+
+    List<String> fullDates = getLastNWeekdays(45);
+    List<String> shortDates = fullDates.stream()
+        .map(d -> LocalDate.parse(d).format(DateTimeFormatter.ofPattern("dd-MM")))
+        .collect(Collectors.toList());
+
+    fixedModel.setColumnIdentifiers(new String[]{"Key"});
+    List<String> scrollHeaders = new ArrayList<>(shortDates);
+    scrollHeaders.add("Row Total");
+    scrollModel.setColumnIdentifiers(scrollHeaders.toArray());
+
+    Map<String, Map<String, Double>> keyDateHoursMap = new LinkedHashMap<>();
+    Map<String, Double> columnTotals = new HashMap<>();
+
+    for (Object[] row : originalData) {
+        String key = row[0].toString();
+        int seconds = (int) row[2];
+        double hours = seconds / 3600.0;
+        String[] dates = row[3].toString().split(",");
+
+        Map<String, Double> dateHours = keyDateHoursMap.computeIfAbsent(key, k -> new HashMap<>());
+        for (String date : dates) {
+            if (fullDates.contains(date)) {
+                dateHours.put(date, dateHours.getOrDefault(date, 0.0) + hours);
+                columnTotals.put(date, columnTotals.getOrDefault(date, 0.0) + hours);
+            }
+        }
+    }
+
+    List<String> keys = new ArrayList<>();
+    for (Map.Entry<String, Map<String, Double>> entry : keyDateHoursMap.entrySet()) {
+        String key = entry.getKey();
+        keys.add(key);
+        Map<String, Double> dateHours = entry.getValue();
+        fixedModel.addRow(new Object[]{key});
+
+        List<Object> scrollRow = new ArrayList<>();
+        double rowTotal = 0.0;
+        for (String fullDate : fullDates) {
+            double val = dateHours.getOrDefault(fullDate, 0.0);
+            scrollRow.add(String.format("%.2f", val));
+            rowTotal += val;
+        }
+        scrollRow.add(String.format("%.2f", rowTotal));
+        scrollModel.addRow(scrollRow.toArray());
+    }
+
+    List<Object> totalRow = new ArrayList<>();
+    double grandTotal = 0.0;
+    for (String fullDate : fullDates) {
+        double total = columnTotals.getOrDefault(fullDate, 0.0);
+        totalRow.add(String.format("%.2f", total));
+        grandTotal += total;
+    }
+    totalRow.add(String.format("%.2f", grandTotal));
+    fixedModel.addRow(new Object[]{"Column Total"});
+    scrollModel.addRow(totalRow.toArray());
+
+    JTable fixedTable = new JTable(fixedModel) {
+        @Override public boolean isCellEditable(int row, int column) { return false; }
+    };
+
+    JTable scrollTable = new JTable(scrollModel) {
+        @Override public boolean isCellEditable(int row, int column) { return false; }
+    };
+
+    fixedTable.setPreferredScrollableViewportSize(new Dimension(120, fixedTable.getPreferredSize().height));
+    fixedTable.setDefaultRenderer(Object.class, getCustomRenderer());
+    scrollTable.setDefaultRenderer(Object.class, getCustomRenderer());
+
+    // Handle double-click to open log window
+    scrollTable.addMouseListener(new MouseAdapter() {
+        public void mouseClicked(MouseEvent e) {
+            if (e.getClickCount() == 2) {
+                int row = scrollTable.getSelectedRow();
+                int col = scrollTable.getSelectedColumn();
+                if (row >= 0 && col >= 0 && col < shortDates.size()) {
+                    String selectedKey = (String) fixedModel.getValueAt(row, 0);
+                    String selectedDate = fullDates.get(col);
+                    String summary = ""; // Replace with summary value from dropdown context
+                    String fixVersion = ""; // Replace with fixVersion from dropdown context
+                    showLogPopup(selectedKey, selectedDate, summary, fixVersion);
+                }
+            }
+        }
+    });
+
+    JScrollPane scrollPane = new JScrollPane(scrollTable);
+    scrollPane.setRowHeaderView(fixedTable);
+    scrollPane.setCorner(JScrollPane.UPPER_LEFT_CORNER, fixedTable.getTableHeader());
+
+    removeAll();
+    add(scrollPane, BorderLayout.CENTER);
+    revalidate();
+    repaint();
+}
+
+private void showLogPopup(String key, String date, String summary, String fixVersion) {
+    JDialog dialog = new JDialog((Frame) null, "Log Work Hours", true);
+    dialog.setLayout(new BorderLayout());
+    dialog.setSize(400, 250);
+    dialog.setLocationRelativeTo(null);
+
+    JPanel panel = new JPanel(new GridLayout(5, 1));
+    panel.add(new JLabel("Key: " + key));
+    panel.add(new JLabel("Date: " + date));
+    panel.add(new JLabel("Summary: " + summary));
+    panel.add(new JLabel("Fix Version: " + fixVersion));
+    JTextField hourInput = new JTextField();
+    panel.add(hourInput);
+
+    JPanel buttonPanel = new JPanel();
+    JButton logButton = new JButton("Log Hours");
+    JButton backButton = new JButton("Back");
+    buttonPanel.add(logButton);
+    buttonPanel.add(backButton);
+
+    logButton.addActionListener(e -> {
+        String input = hourInput.getText().trim();
+        if (!input.isEmpty()) {
+            JOptionPane.showMessageDialog(dialog, "Hours logged: " + input);
+            dialog.dispose();
+        }
+    });
+
+    backButton.addActionListener(e -> dialog.dispose());
+
+    dialog.add(panel, BorderLayout.CENTER);
+    dialog.add(buttonPanel, BorderLayout.SOUTH);
+    dialog.setVisible(true);
+}
