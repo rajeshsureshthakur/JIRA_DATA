@@ -1,0 +1,52 @@
+// Rewritten popup with wrapped summary and smaller input box
+private void showLogPopup(String key, String date, String summary, String fixVersion) {
+    JDialog dialog = new JDialog((Frame) null, "Log Work Hours", true);
+    dialog.setLayout(new BorderLayout());
+    dialog.setSize(450, 300);
+    dialog.setLocationRelativeTo(null);
+
+    JPanel panel = new JPanel();
+    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
+    panel.add(Box.createVerticalStrut(5));
+    panel.add(new JLabel("Key: " + key));
+    panel.add(Box.createVerticalStrut(5));
+    panel.add(new JLabel("Date: " + date));
+
+    JTextArea summaryArea = new JTextArea(summary);
+    summaryArea.setLineWrap(true);
+    summaryArea.setWrapStyleWord(true);
+    summaryArea.setEditable(false);
+    summaryArea.setBackground(UIManager.getColor("Label.background"));
+    summaryArea.setBorder(BorderFactory.createTitledBorder("Summary"));
+    panel.add(summaryArea);
+
+    panel.add(new JLabel("Fix Version: " + fixVersion));
+    panel.add(Box.createVerticalStrut(10));
+
+    JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+    inputPanel.add(new JLabel("Hours:"));
+    JTextField hourInput = new JTextField(5);
+    inputPanel.add(hourInput);
+    panel.add(inputPanel);
+
+    JPanel buttonPanel = new JPanel();
+    JButton logButton = new JButton("Log Hours");
+    JButton backButton = new JButton("Back");
+    buttonPanel.add(logButton);
+    buttonPanel.add(backButton);
+
+    logButton.addActionListener(e -> {
+        String input = hourInput.getText().trim();
+        if (!input.isEmpty()) {
+            JOptionPane.showMessageDialog(dialog, "Hours logged: " + input);
+            dialog.dispose();
+        }
+    });
+
+    backButton.addActionListener(e -> dialog.dispose());
+
+    dialog.add(panel, BorderLayout.CENTER);
+    dialog.add(buttonPanel, BorderLayout.SOUTH);
+    dialog.setVisible(true);
+}
