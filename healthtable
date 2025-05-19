@@ -1,0 +1,116 @@
+// Rewritten: display matrix with keys as rows and last 45 weekdays as date columns
+private void loadHealthAnalyzerView() {
+    model = new DefaultTableModel() {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false; // Make all cells non-editable
+        }
+    };
+
+    // Prepare 45 weekday dates as column headers
+    List<String> last45Weekdays = getLastNWeekdays(45);
+    List<String> columnHeaders = new ArrayList<>();
+    columnHeaders.add("Key");
+    columnHeaders.addAll(last45Weekdays);
+    columnHeaders.add("Row Total");
+    model.setColumnIdentifiers(columnHeaders.toArray());
+
+    // Structure: Map<Key, Map<Date, TotalHours>>
+    Map<String, Map<String, Double>> keyDateHoursMap = new LinkedHashMap<>();
+    Map<String, Double> columnTotals = new HashMap<>();
+
+    for (Object[] row : originalData) {
+        String key = row[0].toString();
+        int seconds = (int) row[2];
+        double hours = seconds / 3600.0;
+        String[] dates = row[3].toString().split(",");
+
+        Map<String, Double> dateHours = keyDateHoursMap.computeIfAbsent(key, k -> new HashMap<>());
+        for (String date : dates) {
+            if (last45Weekdays.contains(date)) {
+                dateHours.put(date, dateHours.getOrDefault(date, 0.0) + hours);
+                columnTotals.put(date, columnTotals.getOrDefault(date, 0.0) + hours);
+            }
+        }
+    }
+
+    // Fill rows
+    for (Map.Entry<String, Map<String, Double>> entry : keyDateHoursMap.entrySet()) {
+        String key = entry.getKey();
+        Map<String, Double> dateHours = entry.getValue();
+        List<Object> row = new ArrayList<>();
+        row.add(key);
+        double rowTotal = 0.0;
+        for (String date : last45Weekdays) {
+            double val = dateHours.getOrDefault(date, 0.0);
+            row.add(String.format("%.2f", val));
+            rowTotal += val;
+        }
+        row.add(String.format("%.2f", rowTotal));
+        model.addRow(row.toArray());
+    }
+
+    // Add total row
+    List<Object> totalRow = new ArrayList<>();
+    totalRow.add("Column Total");
+    double grandTotal = 0.0;
+    for (String date : last45Weekdays) {
+        double total = columnTotals.getOrDefault(date, 0.0);
+        totalRow.add(String.format("%.2f", total));
+        grandTotal += total;
+    }
+    totalRow.add(String.format("%.2f", grandTotal));
+    model.addRow(totalRow.toArray());
+
+    table.setModel(model);
+    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+    table.getTableHeader().setReorderingAllowed(false);
+
+    // Apply highlighting for totals
+    table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                        boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            int lastRow = model.getRowCount() - 1;
+            int lastCol = model.getColumnCount() - 1;
+
+            boolean isTotalRow = (row == lastRow && column > 0);
+            boolean isTotalCol = (column == lastCol && row < lastRow);
+
+            if (isTotalRow || isTotalCol) {
+                try {
+                    double val = Double.parseDouble(value.toString());
+                    if (val < 6) {
+                        c.setBackground(new Color(255, 204, 102)); // amber
+                    } else if (val >= 6 && val <= 9) {
+                        c.setBackground(new Color(204, 255, 204)); // green
+                    } else {
+                        c.setBackground(new Color(255, 153, 153)); // red
+                    }
+                } catch (NumberFormatException e) {
+                    c.setBackground(Color.WHITE);
+                }
+            } else {
+                c.setBackground(Color.WHITE);
+            }
+
+            setHorizontalAlignment(SwingConstants.CENTER);
+            return c;
+        }
+    });
+}
+
+private List<String> getLastNWeekdays(int n) {
+    List<String> dates = new ArrayList<>();
+    LocalDate date = LocalDate.now();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    while (dates.size() < n) {
+        if (!(date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY)) {
+            dates.add(date.format(formatter));
+        }
+        date = date.minusDays(1);
+    }
+    Collections.reverse(dates);
+    return dates;
+}
