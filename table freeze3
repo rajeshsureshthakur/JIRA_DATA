@@ -1,0 +1,147 @@
+// Rewritten: dual-table view with frozen first column
+private void loadHealthAnalyzerView() {
+    model.setRowCount(0);
+    model.setColumnCount(0);
+
+    List<String> fullDates = getLastNWeekdays(45);
+    List<String> shortDates = fullDates.stream()
+        .map(d -> LocalDate.parse(d).format(DateTimeFormatter.ofPattern("dd-MM")))
+        .collect(Collectors.toList());
+
+    List<String> allHeaders = new ArrayList<>();
+    allHeaders.add("Key");
+    allHeaders.addAll(shortDates);
+    allHeaders.add("Row Total");
+    model.setColumnIdentifiers(allHeaders.toArray());
+
+    Map<String, Map<String, Double>> keyDateHoursMap = new LinkedHashMap<>();
+    Map<String, Double> columnTotals = new HashMap<>();
+
+    for (Object[] row : originalData) {
+        String key = row[0].toString();
+        int seconds = (int) row[2];
+        double hours = seconds / 3600.0;
+        String[] dates = row[3].toString().split(",");
+
+        Map<String, Double> dateHours = keyDateHoursMap.computeIfAbsent(key, k -> new HashMap<>());
+        for (String date : dates) {
+            if (fullDates.contains(date)) {
+                dateHours.put(date, dateHours.getOrDefault(date, 0.0) + hours);
+                columnTotals.put(date, columnTotals.getOrDefault(date, 0.0) + hours);
+            }
+        }
+    }
+
+    for (Map.Entry<String, Map<String, Double>> entry : keyDateHoursMap.entrySet()) {
+        String key = entry.getKey();
+        Map<String, Double> dateHours = entry.getValue();
+        List<Object> row = new ArrayList<>();
+        row.add(key);
+        double rowTotal = 0.0;
+        for (String fullDate : fullDates) {
+            double val = dateHours.getOrDefault(fullDate, 0.0);
+            row.add(String.format("%.2f", val));
+            rowTotal += val;
+        }
+        row.add(String.format("%.2f", rowTotal));
+        model.addRow(row.toArray());
+    }
+
+    List<Object> totalRow = new ArrayList<>();
+    totalRow.add("Column Total");
+    double grandTotal = 0.0;
+    for (String fullDate : fullDates) {
+        double total = columnTotals.getOrDefault(fullDate, 0.0);
+        totalRow.add(String.format("%.2f", total));
+        grandTotal += total;
+    }
+    totalRow.add(String.format("%.2f", grandTotal));
+    model.addRow(totalRow.toArray());
+
+    TableRowSorter<TableModel> sorter = new TableRowSorter<>(model);
+    sorter.setSortable(model.getColumnCount() - 1, true);
+
+    JTable fixedColumn = new JTable(model) {
+        @Override public boolean isCellEditable(int row, int column) { return false; }
+    };
+    fixedColumn.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+    fixedColumn.setSelectionModel(table.getSelectionModel());
+    fixedColumn.setRowSorter(sorter);
+
+    JTable scrollableTable = new JTable(model) {
+        @Override public boolean isCellEditable(int row, int column) { return false; }
+    };
+    scrollableTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+    scrollableTable.setRowSorter(sorter);
+    scrollableTable.setSelectionModel(table.getSelectionModel());
+
+    TableColumnModel fullColModel = scrollableTable.getColumnModel();
+    while (fullColModel.getColumnCount() > 1) {
+        fullColModel.removeColumn(fullColModel.getColumn(1));
+    }
+
+    TableColumnModel fixedColModel = fixedColumn.getColumnModel();
+    while (fixedColModel.getColumnCount() > 1) {
+        fixedColModel.removeColumn(fixedColModel.getColumn(1));
+    }
+
+    fixedColumn.getColumnModel().getColumn(0).setPreferredWidth(120);
+
+    scrollableTable.setDefaultRenderer(Object.class, getCustomRenderer());
+    fixedColumn.setDefaultRenderer(Object.class, getCustomRenderer());
+
+    JScrollPane scrollPane = new JScrollPane(scrollableTable);
+    scrollPane.setRowHeaderView(fixedColumn);
+    scrollPane.setCorner(JScrollPane.UPPER_LEFT_CORNER, fixedColumn.getTableHeader());
+
+    removeAll();
+    add(scrollPane, BorderLayout.CENTER);
+    revalidate();
+    repaint();
+}
+
+private List<String> getLastNWeekdays(int n) {
+    List<String> dates = new ArrayList<>();
+    LocalDate date = LocalDate.now();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    while (dates.size() < n) {
+        if (!(date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY)) {
+            dates.add(date.format(formatter));
+        }
+        date = date.minusDays(1);
+    }
+    Collections.reverse(dates);
+    return dates;
+}
+
+private TableCellRenderer getCustomRenderer() {
+    return new DefaultTableCellRenderer() {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                        boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            int lastRow = model.getRowCount() - 1;
+            int lastCol = model.getColumnCount() - 1;
+            boolean isTotalRow = (row == lastRow && column > 0);
+            boolean isTotalCol = (column == lastCol && row < lastRow);
+            if (isTotalRow || isTotalCol) {
+                try {
+                    double val = Double.parseDouble(value.toString());
+                    if (val < 6) {
+                        c.setBackground(new Color(255, 204, 102));
+                    } else if (val >= 6 && val <= 9) {
+                        c.setBackground(new Color(204, 255, 204));
+                    } else {
+                        c.setBackground(new Color(255, 153, 153));
+                    }
+                } catch (NumberFormatException e) {
+                    c.setBackground(Color.WHITE);
+                }
+            } else {
+                c.setBackground(Color.WHITE);
+            }
+            setHorizontalAlignment(SwingConstants.CENTER);
+            return c;
+        }
+    };
+}
