@@ -1,0 +1,44 @@
+JPanel panel = new JPanel();
+    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+    JLabel keyLabel = new JLabel("Key: " + key);
+    keyLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    keyLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, keyLabel.getPreferredSize().height));
+    panel.add(keyLabel);
+
+    JLabel dateLabel = new JLabel("Date: " + date);
+    dateLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    dateLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, dateLabel.getPreferredSize().height));
+    panel.add(Box.createVerticalStrut(5));
+    panel.add(dateLabel);
+
+    JTextArea summaryArea = new JTextArea(summary);
+    summaryArea.setLineWrap(true);
+    summaryArea.setWrapStyleWord(true);
+    summaryArea.setEditable(false);
+    summaryArea.setBackground(UIManager.getColor("Label.background"));
+    summaryArea.setBorder(BorderFactory.createTitledBorder("Summary"));
+    summaryArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+    summaryArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60));
+    panel.add(Box.createVerticalStrut(5));
+    panel.add(summaryArea);
+
+    JLabel fixVersionLabel = new JLabel("Fix Version: " + fixVersion);
+    fixVersionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+    fixVersionLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, fixVersionLabel.getPreferredSize().height));
+    panel.add(Box.createVerticalStrut(5));
+    panel.add(fixVersionLabel);
+
+    JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+    inputPanel.add(new JLabel("Hours:"));
+    JTextField hourInput = new JTextField(5);
+    inputPanel.add(hourInput);
+    panel.add(Box.createVerticalStrut(10));
+    panel.add(inputPanel);
+
+    JPanel buttonPanel = new JPanel();
+    JButton logButton = new JButton("Log Hours");
+    JButton backButton = new JButton("Back");
+    buttonPanel.add(logButton);
+    buttonPanel.add(backButton);
