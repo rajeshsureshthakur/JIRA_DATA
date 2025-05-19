@@ -1,0 +1,107 @@
+private void loadHealthAnalyzerView() {
+    model.setRowCount(0);
+    model.setColumnCount(0);
+
+    // Prepare last 45 weekdays
+    List<LocalDate> last45Weekdays = getLastNWeekdays(45);
+    List<String> shortDates = last45Weekdays.stream()
+        .map(d -> d.format(DateTimeFormatter.ofPattern("dd-MM")))
+        .collect(Collectors.toList());
+    List<String> fullDates = last45Weekdays.stream()
+        .map(d -> d.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")))
+        .collect(Collectors.toList());
+
+    // Setup columns
+    model.addColumn("Key");
+    for (String date : shortDates) model.addColumn(date);
+    model.addColumn("Row Total");
+
+    Map<String, Map<String, Integer>> logMap = new HashMap<>();
+    Set<String> allKeys = new HashSet<>();
+
+    for (Object[] row : originalData) {
+        String key = row[0].toString();
+        allKeys.add(key);
+        String datesCombined = row[4].toString();
+        int seconds = Integer.parseInt(row[3].toString());
+
+        for (String date : datesCombined.split(",")) {
+            logMap.computeIfAbsent(key, k -> new HashMap<>())
+                  .merge(date, seconds, Integer::sum);
+        }
+    }
+
+    Map<Integer, Double> columnTotals = new HashMap<>();
+    for (String key : allKeys) {
+        List<Object> rowData = new ArrayList<>();
+        rowData.add(key);
+        double rowTotal = 0;
+
+        for (int i = 0; i < fullDates.size(); i++) {
+            String date = fullDates.get(i);
+            int secs = logMap.getOrDefault(key, new HashMap<>()).getOrDefault(date, 0);
+            double hrs = secs / 3600.0;
+            rowData.add(String.format("%.2f", hrs));
+            columnTotals.merge(i + 1, hrs, Double::sum);
+            rowTotal += hrs;
+        }
+        rowData.add(String.format("%.2f", rowTotal));
+        columnTotals.merge(shortDates.size() + 1, rowTotal, Double::sum);
+        model.addRow(rowData.toArray());
+    }
+
+    // Add totals row
+    List<Object> totalRow = new ArrayList<>();
+    totalRow.add("Column Total");
+    for (int i = 1; i <= shortDates.size(); i++)
+        totalRow.add(String.format("%.2f", columnTotals.getOrDefault(i, 0.0)));
+    totalRow.add(String.format("%.2f", columnTotals.getOrDefault(shortDates.size() + 1, 0.0)));
+    model.addRow(totalRow.toArray());
+
+    // Set model and sorter
+    table.setModel(model);
+    table.setRowSorter(null);
+    table.setRowSorter(new TableRowSorter<>(model));
+    table.setDefaultEditor(Object.class, null); // make non-editable
+
+    // Freeze first column
+    table.getColumnModel().getColumn(0).setPreferredWidth(120);
+    table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+    // Renderer for coloring totals
+    DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+        public Component getTableCellRendererComponent(JTable tbl, Object val, boolean sel, boolean foc, int row, int col) {
+            Component c = super.getTableCellRendererComponent(tbl, val, sel, foc, row, col);
+            c.setBackground(Color.WHITE);
+            setHorizontalAlignment(SwingConstants.CENTER);
+            try {
+                double hours = Double.parseDouble(val.toString());
+                if (row == model.getRowCount() - 1 || col == model.getColumnCount() - 1) {
+                    if (hours > 9) c.setBackground(Color.PINK);
+                    else if (hours < 6) c.setBackground(Color.ORANGE);
+                    else c.setBackground(Color.GREEN);
+                }
+            } catch (Exception ignored) {}
+            return c;
+        }
+    };
+
+    for (int i = 0; i < model.getColumnCount(); i++)
+        table.getColumnModel().getColumn(i).setCellRenderer(renderer);
+
+    // Double-click popup
+    table.addMouseListener(new MouseAdapter() {
+        public void mouseClicked(MouseEvent e) {
+            if (!"Health Analyzer".equals(currentView)) return;
+            if (e.getClickCount() == 2) {
+                int row = table.getSelectedRow();
+                int col = table.getSelectedColumn();
+                if (row < 0 || col < 1 || row == model.getRowCount() - 1 || col == model.getColumnCount() - 1) return;
+                String key = model.getValueAt(row, 0).toString();
+                String date = fullDates.get(col - 1);
+                String summary = summaryMap.getOrDefault(key, "");
+                showLogPopup(key, date, summary, fixVersion);
+            }
+        }
+    });
+}
