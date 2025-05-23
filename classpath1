@@ -1,0 +1,49 @@
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+
+public class TestManagementApp {
+    public static void main(String[] args) throws Exception {
+        // Define the lib folder path
+        String libFolder = "lib"; // Path to the lib folder where your JARs are located
+
+        // Get all JAR files in the lib folder
+        File dir = new File(libFolder);
+        File[] jarFiles = dir.listFiles((dir1, name) -> name.endsWith(".jar")); // Filter JAR files
+
+        if (jarFiles != null && jarFiles.length > 0) {
+            // Build the classpath URLs array
+            URL[] classpathUrls = new URL[jarFiles.length];
+            for (int i = 0; i < jarFiles.length; i++) {
+                classpathUrls[i] = jarFiles[i].toURI().toURL(); // Convert each JAR file to URL
+                System.out.println("Adding to classpath: " + jarFiles[i].getAbsolutePath()); // Debugging
+            }
+
+            // Check if classpathUrls is properly initialized
+            if (classpathUrls != null && classpathUrls.length > 0) {
+                // Create a new URLClassLoader with the classpath URLs
+                URLClassLoader classLoader = new URLClassLoader(classpathUrls, TestManagementApp.class.getClassLoader());
+                // Set the current thread's context classloader
+                Thread.currentThread().setContextClassLoader(classLoader);
+                System.out.println("Application started with manual classpath!");
+            } else {
+                System.out.println("Classpath URLs are empty.");
+            }
+        } else {
+            System.out.println("No JAR files found in the 'lib' folder.");
+        }
+
+        // Your application logic here
+    }
+}
+
+
+
+File dir = new File("lib");
+System.out.println("Lib folder exists: " + dir.exists());
+if (dir.exists() && dir.isDirectory()) {
+    File[] jarFiles = dir.listFiles((d, name) -> name.endsWith(".jar"));
+    System.out.println("Number of JAR files found: " + (jarFiles != null ? jarFiles.length : 0));
+} else {
+    System.out.println("The 'lib' folder is either missing or not a directory.");
+}
