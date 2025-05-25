@@ -164,3 +164,93 @@ public void loadHealthAnalyzerView(String startDateStr, String endDateStr) {
 }
 
 
+
+
+
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableRowSorter;
+
+public void loadHealthAnalyzerView(String startDateStr, String endDateStr) {
+    try {
+        // Define the date format (yyyy-MM-dd) to parse the input date strings
+        SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        
+        // Parse the start and end date strings into java.util.Date objects
+        java.util.Date startDate = inputDateFormat.parse(startDateStr);
+        java.util.Date endDate = inputDateFormat.parse(endDateStr);
+
+        // Define the output date format (dd-MM) for comparison with column headers
+        SimpleDateFormat outputDateFormat = new SimpleDateFormat("dd-MM");
+
+        // Strip the time part from the start and end dates by formatting them to 'dd-MM'
+        String startFormatted = outputDateFormat.format(startDate);
+        String endFormatted = outputDateFormat.format(endDate);
+
+        // Fix the year by creating new date objects to ensure comparison considers day and month only
+        int startDay = Integer.parseInt(startFormatted.substring(0, 2));
+        int startMonth = Integer.parseInt(startFormatted.substring(3, 5)) - 1; // Month is 0-based
+        int endDay = Integer.parseInt(endFormatted.substring(0, 2));
+        int endMonth = Integer.parseInt(endFormatted.substring(3, 5)) - 1; // Month is 0-based
+
+        // Set a fixed year for comparison (for example, 2025)
+        java.util.Calendar startCalendar = java.util.Calendar.getInstance();
+        startCalendar.set(2025, startMonth, startDay);  // Set the year to 2025
+        java.util.Date fixedStartDate = startCalendar.getTime();
+
+        java.util.Calendar endCalendar = java.util.Calendar.getInstance();
+        endCalendar.set(2025, endMonth, endDay);  // Set the year to 2025
+        java.util.Date fixedEndDate = endCalendar.getTime();
+
+        DefaultTableModel model = (DefaultTableModel) healthAnalyzerTable.getModel();
+        
+        // Get the column count and column names (headers)
+        int columnCount = model.getColumnCount();
+
+        // Loop through the columns (dates) in the Health Analyzer table
+        for (int i = 0; i < columnCount; i++) {
+            String columnName = model.getColumnName(i); // Get the column header (the date in dd-MM format)
+            
+            // Parse the column name as a date (assuming day and month only)
+            java.util.Date columnDate = outputDateFormat.parse(columnName);
+            
+            // Normalize the column date to a fixed year (2025) to compare day and month
+            java.util.Calendar columnCalendar = java.util.Calendar.getInstance();
+            columnCalendar.set(2025, columnDate.getMonth(), columnDate.getDate());
+            java.util.Date fixedColumnDate = columnCalendar.getTime();
+
+            try {
+                // Compare the column date with the start and end dates
+                if (fixedColumnDate.before(fixedStartDate) || fixedColumnDate.after(fixedEndDate)) {
+                    // If outside the selected date range, hide the column
+                    TableColumn column = healthAnalyzerTable.getColumnModel().getColumn(i);
+                    column.setMinWidth(0);
+                    column.setMaxWidth(0);
+                    column.setWidth(0);
+                    healthAnalyzerTable.getColumnModel().getColumn(i).setResizable(false);
+                } else {
+                    // If within the range, ensure the column is visible
+                    TableColumn column = healthAnalyzerTable.getColumnModel().getColumn(i);
+                    column.setMinWidth(15);  // Adjust to your desired minimum width
+                    column.setMaxWidth(100);
+                    column.setWidth(50);     // Adjust to your desired width
+                    healthAnalyzerTable.getColumnModel().getColumn(i).setResizable(true);
+                }
+            } catch (Exception e) {
+                // Handle the exception if date parsing fails
+                System.err.println("Error parsing column date: " + e.getMessage());
+            }
+        }
+        
+        // Optionally, you can add a row sorter to make the table more responsive
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+        healthAnalyzerTable.setRowSorter(sorter);
+        
+    } catch (Exception e) {
+        // Handle any errors that occur during date parsing
+        System.err.println("Error parsing date: " + e.getMessage());
+    }
+}
