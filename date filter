@@ -30,3 +30,62 @@ endDateChooser.addPropertyChangeListener("date", new PropertyChangeListener() {
         filterHealthAnalyzerData(startDateChooser.getDate(), endDateChooser.getDate());
     }
 });
+
+
+
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableRowSorter;
+import javax.swing.RowFilter;
+
+public void loadHealthAnalyzerView(String startDateStr, String endDateStr) {
+    try {
+        // Define the date format (YYYY-MM-dd)
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+        // Parse the date strings into Date objects
+        Date startDate = sdf.parse(startDateStr);
+        Date endDate = sdf.parse(endDateStr);
+
+        DefaultTableModel model = (DefaultTableModel) healthAnalyzerTable.getModel();
+        
+        // Get the column count and column names (headers)
+        int columnCount = model.getColumnCount();
+
+        // Loop through the columns and filter out those that don't match the date range
+        for (int i = 0; i < columnCount; i++) {
+            String columnName = model.getColumnName(i); // Get the date string from the header
+            
+            // Parse the column name as a Date
+            Date columnDate = sdf.parse(columnName);
+
+            // If the column date is outside the selected range, hide the column
+            if (columnDate.before(startDate) || columnDate.after(endDate)) {
+                TableColumn column = healthAnalyzerTable.getColumnModel().getColumn(i);
+                column.setMinWidth(0);
+                column.setMaxWidth(0);
+                column.setWidth(0);
+                healthAnalyzerTable.getColumnModel().getColumn(i).setResizable(false);
+            } else {
+                // Ensure columns within the range are visible
+                TableColumn column = healthAnalyzerTable.getColumnModel().getColumn(i);
+                column.setMinWidth(15);  // Set to your desired minimum width
+                column.setMaxWidth(100);
+                column.setWidth(50);  // Set to your desired width
+                healthAnalyzerTable.getColumnModel().getColumn(i).setResizable(true);
+            }
+        }
+
+        // Optionally, you can add a row sorter to make the table more responsive
+        TableRowSorter sorter = new TableRowSorter(model);
+        healthAnalyzerTable.setRowSorter(sorter);
+        
+    } catch (Exception e) {
+        // Handle the exception if date parsing fails
+        System.err.println("Error parsing date: " + e.getMessage());
+    }
+}
+
