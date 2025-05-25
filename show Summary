@@ -1,0 +1,44 @@
+// Create a map to store key-summary pairs
+Map<String, String> keySummaryMap = new HashMap<>();
+
+for (Object[] row : originalData) {
+    String key = row[0].toString();  // The key is in the first column
+    String summary = row[1].toString();  // Assuming the summary is in the second column
+    
+    // Store the key-summary pair in the map
+    keySummaryMap.put(key, summary);
+    
+    // Process hours and dates (existing code)
+    int seconds = (int) row[2];
+    double hours = seconds / 3600.0;
+    String[] dates = row[3].toString().split(",");
+
+    Map<String, Double> dateHours = keyDateHoursMap.computeIfAbsent(key, k -> new HashMap<>());
+    for (String date : dates) {
+        if (fullDates.contains(date)) {
+            dateHours.put(date, dateHours.getOrDefault(date, 0.0) + hours);
+            columnTotals.put(date, columnTotals.getOrDefault(date, 0.0) + hours);
+        }
+    }
+}
+
+
+
+scrollTable.addMouseMotionListener(new MouseMotionAdapter() {
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        int row = scrollTable.rowAtPoint(e.getPoint());
+        int col = scrollTable.columnAtPoint(e.getPoint());
+
+        if (col == 0 && row >= 0) {  // Check if hovering over the Key column
+            // Get the key from the first column in the selected row
+            String key = (String) scrollTable.getValueAt(row, 0);
+
+            // Retrieve the summary for the key from the map
+            String summary = keySummaryMap.getOrDefault(key, "No summary available.");
+
+            // Display the summary as a tooltip or in a popup
+            scrollTable.setToolTipText(summary);
+        }
+    }
+});
