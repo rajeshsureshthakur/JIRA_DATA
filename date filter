@@ -1,0 +1,32 @@
+public void filterHealthAnalyzerData(Date startDate, Date endDate) {
+    DefaultTableModel model = (DefaultTableModel) healthAnalyzerTable.getModel();
+    TableRowSorter<TableModel> sorter = new TableRowSorter<>(model);
+    healthAnalyzerTable.setRowSorter(sorter);
+
+    // Define a row filter based on date range
+    RowFilter<TableModel, Object> dateFilter = new RowFilter<TableModel, Object>() {
+        @Override
+        public boolean include(Entry<? extends TableModel, ? extends Object> entry) {
+            // Assume date is in the first column (index 0) of the model
+            Date rowDate = (Date) entry.getValue(0); // Modify index based on your column structure
+            return !rowDate.before(startDate) && !rowDate.after(endDate);
+        }
+    };
+
+    // Apply the row filter
+    sorter.setRowFilter(dateFilter);
+}
+
+startDateChooser.addPropertyChangeListener("date", new PropertyChangeListener() {
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        filterHealthAnalyzerData(startDateChooser.getDate(), endDateChooser.getDate());
+    }
+});
+
+endDateChooser.addPropertyChangeListener("date", new PropertyChangeListener() {
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        filterHealthAnalyzerData(startDateChooser.getDate(), endDateChooser.getDate());
+    }
+});
