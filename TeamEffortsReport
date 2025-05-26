@@ -6,8 +6,8 @@ import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class DataFilterWindow {
-    
+public class AWT_TeamEffortsReport {
+
     // Define components
     private JFrame frame;
     private JComboBox<String> viewComboBox;
@@ -16,14 +16,14 @@ public class DataFilterWindow {
     private JButton filterButton, resetButton, backButton;
     private DefaultTableModel tableModel;
     private Connection connection;
-    
+
     // Constructor to initialize the window
-    public DataFilterWindow() {
+    public AWT_TeamEffortsReport() {
         // Create the frame
-        frame = new JFrame("Data Filter Window");
+        frame = new JFrame("Team Efforts Report");
         frame.setSize(800, 600);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        
+
         // Set layout
         frame.setLayout(new BorderLayout());
 
@@ -31,26 +31,26 @@ public class DataFilterWindow {
         String[] views = {"Assignee View", "KB_Scrum View"};
         viewComboBox = new JComboBox<>(views);
         viewComboBox.setSelectedIndex(0);  // Default to "Assignee View"
-        
+
         // Create date filter fields (start and end date)
         startDateField = new JTextField(10);
         endDateField = new JTextField(10);
-        
+
         // Set today's date as default
         String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
         startDateField.setText(today);
         endDateField.setText(today);
-        
+
         // Buttons for filter, reset, and back
         filterButton = new JButton("Filter");
         resetButton = new JButton("Reset");
         backButton = new JButton("Back");
-        
+
         // Table setup
         tableModel = new DefaultTableModel(new String[]{"Assignee", "Fix Version", "Total Tasks", "Total Log Seconds", "Total Log Estimate", "Estimate v/s Logged", "Total Story Points"}, 0);
         dataTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(dataTable);
-        
+
         // Panel for the dropdown and date filters
         JPanel topPanel = new JPanel();
         topPanel.setLayout(new FlowLayout());
@@ -62,11 +62,11 @@ public class DataFilterWindow {
         topPanel.add(endDateField);
         topPanel.add(filterButton);
         topPanel.add(resetButton);
-        
+
         // Panel for the back button
         JPanel bottomPanel = new JPanel();
         bottomPanel.add(backButton);
-        
+
         // Add panels to the frame
         frame.add(topPanel, BorderLayout.NORTH);
         frame.add(scrollPane, BorderLayout.CENTER);
@@ -74,16 +74,19 @@ public class DataFilterWindow {
 
         // Show the frame
         frame.setVisible(true);
-        
+
         // Add action listeners
         addListeners();
-        
+
         // Establish database connection
         try {
             connection = DriverManager.getConnection("jdbc:oracle:thin:@your_db_host:port:service_name", "username", "password");
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+        // Load data without date filter initially
+        applyInitialDataLoad();
     }
 
     private void addListeners() {
@@ -94,8 +97,8 @@ public class DataFilterWindow {
                 String startDate = startDateField.getText();
                 String endDate = endDateField.getText();
                 String selectedView = (String) viewComboBox.getSelectedItem();
-                
-                // Based on the selected view, call the respective query
+
+                // Based on the selected view, call the respective query with date filter
                 if (selectedView.equals("Assignee View")) {
                     applyAssigneeViewFilter(startDate, endDate);
                 } else {
@@ -112,6 +115,7 @@ public class DataFilterWindow {
                 endDateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));    // Reset to today's date
                 // Clear filters and show all data
                 resetTable();
+                applyInitialDataLoad();  // Reload full data without date filter
             }
         });
 
@@ -125,6 +129,40 @@ public class DataFilterWindow {
                 frame.dispose();
             }
         });
+    }
+
+    private void applyInitialDataLoad() {
+        // This will load data without date filter (using "query with assignee only" or "query with KB only" without date filter)
+        resetTable();  // Clear any previous data
+
+        String query = "SELECT u.user_name, jwl.fix_version, COUNT(DISTINCT jwl.Key) AS total_tasks, " +
+                       "SUM(jwl.log_seconds) AS total_log_seconds, SUM(jwl.log_estimate) AS total_log_estimate, " +
+                       "CASE WHEN SUM(jwl.log_estimate) > 0 THEN TO_CHAR((SUM(jwl.log_seconds) / SUM(jwl.log_estimate)) * 100) || '%' ELSE '0%' END AS \"Estimate v/s Logged\", " +
+                       "SUM(jwl.story_points) AS total_story_points " +
+                       "FROM jiraworklog jwl " +
+                       "JOIN users u ON jwl.assignee = u.user_soeid " +
+                       "WHERE jwl.fix_version = ? " +
+                       "GROUP BY u.user_name, jwl.fix_version " +
+                       "ORDER BY u.user_name";
+
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, "1.0");  // Replace with the actual fix_version
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String userName = rs.getString("user_name");
+                String fixVersion = rs.getString("fix_version");
+                int totalTasks = rs.getInt("total_tasks");
+                int totalLogSeconds = rs.getInt("total_log_seconds");
+                int totalLogEstimate = rs.getInt("total_log_estimate");
+                String estimateVsLogged = rs.getString("Estimate v/s Logged");
+                int totalStoryPoints = rs.getInt("total_story_points");
+
+                tableModel.addRow(new Object[]{userName, fixVersion, totalTasks, totalLogSeconds, totalLogEstimate, estimateVsLogged, totalStoryPoints});
+            }
+            addTotalRow();  // Add the total row at the end
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void applyAssigneeViewFilter(String startDate, String endDate) {
@@ -141,12 +179,12 @@ public class DataFilterWindow {
                        "AND jwl.log_date BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD') " +
                        "GROUP BY u.user_name, jwl.fix_version " +
                        "ORDER BY u.user_name";
-        
+
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setString(1, "1.0");  // Replace with the actual fix_version
             stmt.setString(2, startDate);
             stmt.setString(3, endDate);
-            
+
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 String userName = rs.getString("user_name");
@@ -179,7 +217,7 @@ public class DataFilterWindow {
                        "AND jwl.log_date BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD') " +
                        "GROUP BY j.KB_SCRUM_TEAM, jwl.fix_version " +
                        "ORDER BY j.KB_SCRUM_TEAM";
-        
+
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setString(1, "1.0");  // Replace with the actual fix_version
             stmt.setString(2, startDate);
@@ -211,19 +249,32 @@ public class DataFilterWindow {
 
     private void addTotalRow() {
         // Adding a "Total" row at the end
+        int totalTasks = 0, totalLogSeconds = 0, totalLogEstimate = 0, totalStoryPoints = 0, totalResourcesWorked = 0;
+
+        // Iterate through table rows to calculate the totals
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            totalTasks += (Integer) tableModel.getValueAt(row, 2);
+            totalLogSeconds += (Integer) tableModel.getValueAt(row, 3);
+            totalLogEstimate += (Integer) tableModel.getValueAt(row, 4);
+            totalStoryPoints += (Integer) tableModel.getValueAt(row, 6);
+            if (tableModel.getColumnCount() > 7) {
+                totalResourcesWorked += (Integer) tableModel.getValueAt(row, 7);
+            }
+        }
+
         Object[] totalRow = new Object[tableModel.getColumnCount()];
         totalRow[0] = "Total";
-        // Example totals, replace with actual summation logic
-        totalRow[2] = 22;  // Total Tasks
-        totalRow[3] = 79200;  // Total Log Seconds
-        totalRow[4] = 85000;  // Total Log Estimate
-        totalRow[5] = "93%";  // Estimate vs Logged
-        totalRow[6] = 110;  // Total Story Points
-        totalRow[7] = 11;  // Total Resources Worked
+        totalRow[2] = totalTasks;
+        totalRow[3] = totalLogSeconds;
+        totalRow[4] = totalLogEstimate;
+        totalRow[5] = (totalLogEstimate > 0) ? (totalLogSeconds * 100.0 / totalLogEstimate) + "%" : "0%";
+        totalRow[6] = totalStoryPoints;
+        totalRow[7] = totalResourcesWorked;
+
         tableModel.addRow(totalRow);
     }
 
     public static void main(String[] args) {
-        new DataFilterWindow();  // Create the window
+        new AWT_TeamEffortsReport();  // Create the window
     }
 }
