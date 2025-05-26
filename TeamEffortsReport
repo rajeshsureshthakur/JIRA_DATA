@@ -1,3 +1,18 @@
+viewComboBox.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String selectedView = (String) viewComboBox.getSelectedItem();
+
+            // Apply the initial data load based on the selected view
+            if ("Assignee View".equals(selectedView)) {
+                applyAssigneeViewFilter("", "");  // Load data for assignee view without date filter
+            } else if ("KB_Scrum View".equals(selectedView)) {
+                applyKBViewFilter("", "");  // Load data for KB_Scrum view without date filter
+            }
+        }
+    });
+}
+
 private void applyInitialDataLoad() {
     resetTable();  // Clear any previous data
 
