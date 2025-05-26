@@ -1,0 +1,18 @@
+SELECT 
+    j.KB_SCRUM_TEAM,
+    jwl.fix_version,
+    SUM(jwl.log_seconds) AS total_log_seconds,
+    SUM(jwl.story_points) AS total_story_points
+FROM 
+    jiraworklog jwl
+JOIN 
+    jiradata j ON jwl.Key = j.Key  -- Join on the Key column
+WHERE 
+    jwl.fix_version = :fix_version  -- Replace with the desired fix_version or bind parameter
+    AND jwl.log_date BETWEEN TO_DATE(:start_date, 'YYYY-MM-DD') 
+                        AND TO_DATE(:end_date, 'YYYY-MM-DD')  -- Replace with your start and end date
+GROUP BY 
+    j.KB_SCRUM_TEAM, 
+    jwl.fix_version
+ORDER BY 
+    j.KB_SCRUM_TEAM;
