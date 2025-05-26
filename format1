@@ -1,3 +1,19 @@
+private void setAssigneeViewHeaders() {
+    // Set column headers for Assignee View
+    String[] assigneeColumns = {"Assignee", "Fix Version", "Total Tasks", "Total Log Seconds", "Total Log Estimate", "Estimate v/s Logged", "Total Story Points"};
+    tableModel.setColumnIdentifiers(assigneeColumns);  // Set the column headers for Assignee View
+}
+
+private void setKBViewHeaders() {
+    // Set column headers for KB_Scrum View
+    String[] kbScrumColumns = {"KB_SCRUM_TEAM", "Fix Version", "Total Keys", "Total Log Seconds", "Total Log Estimate", "Estimate v/s Logged", "Total Story Points", "Total Resources Worked"};
+    tableModel.setColumnIdentifiers(kbScrumColumns);  // Set the column headers for KB_Scrum View
+}
+
+
+
+
+
 private void setAssigneeViewColumnWidths() {
     // Set preferred width for each column for Assignee View
     dataTable.getColumnModel().getColumn(0).setPreferredWidth(150);  // Assignee column width
