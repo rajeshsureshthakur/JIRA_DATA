@@ -1,0 +1,43 @@
+
+    private void setTableCellRenderer() {
+        // Custom cell renderer for centering text and applying colors
+        dataTable.setDefaultRenderer(Object.class, new TableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component cell = table.prepareRenderer(table.getCellRenderer(row, column), row, column);
+
+                // Check if it's the first column (Assignee) to leave it aligned to the left
+                if (column != 0) {
+                    // Center all values except the first column (Assignee)
+                    ((JComponent) cell).setHorizontalAlignment(SwingConstants.CENTER);
+                } else {
+                    // Left align the first column (Assignee)
+                    ((JComponent) cell).setHorizontalAlignment(SwingConstants.LEFT);
+                }
+
+                // Check if the "Estimate v/s Logged" column and if value is less than 95%
+                if (column == 5) {
+                    String cellValue = (String) value;
+                    if (cellValue.endsWith("%") && !cellValue.equals("0%")) {
+                        double percentage = Double.parseDouble(cellValue.substring(0, cellValue.length() - 1)); // Remove '%' and parse to double
+                        if (percentage < 95) {
+                            // Set background color to light red and text color to dark red
+                            cell.setBackground(Color.LIGHT_GRAY);
+                            cell.setForeground(Color.RED);
+                        } else {
+                            cell.setBackground(Color.WHITE);
+                            cell.setForeground(Color.BLACK);
+                        }
+                    }
+                }
+
+                // If it's the last row (total row), highlight it with blue
+                if (row == table.getRowCount() - 1) {
+                    cell.setBackground(Color.BLUE);
+                    cell.setForeground(Color.WHITE);
+                }
+
+                return cell;
+            }
+        });
+    }
