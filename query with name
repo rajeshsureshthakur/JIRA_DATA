@@ -1,0 +1,25 @@
+SELECT 
+    u.user_name,  -- Display user_name from users table instead of assignee (user_soeid)
+    jwl.fix_version,
+    COUNT(DISTINCT jwl.Key) AS total_tasks,  -- Count of distinct Keys (tasks) for each user
+    SUM(jwl.log_seconds) AS total_log_seconds,  -- Sum of log_seconds (total logged hours)
+    SUM(jwl.log_estimate) AS total_log_estimate,  -- Sum of log_estimate (total estimated hours)
+    -- Calculate the Estimate vs Logged percentage (logged_hours / estimated_hours * 100)
+    CASE 
+        WHEN SUM(jwl.log_estimate) > 0 THEN 
+            TO_CHAR((SUM(jwl.log_seconds) / SUM(jwl.log_estimate)) * 100) || '%'  -- Add % sign to the calculated percentage
+        ELSE 
+            '0%'  -- Handle cases where log_estimate is 0
+    END AS "Estimate v/s Logged",  -- Estimate v/s Logged percentage with %
+    SUM(jwl.story_points) AS total_story_points  -- Sum of story_points for each user
+FROM 
+    jiraworklog jwl
+JOIN 
+    users u ON jwl.assignee = u.user_soeid  -- Join with users table to get user_name
+WHERE 
+    jwl.fix_version = :fix_version  -- Replace with the desired fix_version or bind parameter
+GROUP BY 
+    u.user_name,  -- Group by user_name instead of user_soeid
+    jwl.fix_version
+ORDER BY 
+    u.user_name;  -- Order by user_name
