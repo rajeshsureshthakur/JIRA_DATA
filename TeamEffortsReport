@@ -1,0 +1,175 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class DataFilterWindow {
+    
+    // Define components
+    private JFrame frame;
+    private JComboBox<String> viewComboBox;
+    private JTable dataTable;
+    private JTextField startDateField, endDateField;
+    private JButton filterButton, resetButton, backButton;
+    private DefaultTableModel tableModel;
+    
+    // Constructor to initialize the window
+    public DataFilterWindow() {
+        // Create the frame
+        frame = new JFrame("Data Filter Window");
+        frame.setSize(800, 600);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        
+        // Set layout
+        frame.setLayout(new BorderLayout());
+
+        // Create ComboBox for view options
+        String[] views = {"Assignee View", "KB_Scrum View"};
+        viewComboBox = new JComboBox<>(views);
+        viewComboBox.setSelectedIndex(0);  // Default to "Assignee View"
+        
+        // Create date filter fields (start and end date)
+        startDateField = new JTextField(10);
+        endDateField = new JTextField(10);
+        
+        // Set today's date as default
+        String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        startDateField.setText(today);
+        endDateField.setText(today);
+        
+        // Buttons for filter, reset, and back
+        filterButton = new JButton("Filter");
+        resetButton = new JButton("Reset");
+        backButton = new JButton("Back");
+        
+        // Table setup
+        tableModel = new DefaultTableModel(new String[]{"Assignee", "Fix Version", "Total Tasks", "Total Log Seconds", "Total Log Estimate", "Estimate v/s Logged", "Total Story Points"}, 0);
+        dataTable = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(dataTable);
+        
+        // Panel for the dropdown and date filters
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new FlowLayout());
+        topPanel.add(new JLabel("View:"));
+        topPanel.add(viewComboBox);
+        topPanel.add(new JLabel("Start Date:"));
+        topPanel.add(startDateField);
+        topPanel.add(new JLabel("End Date:"));
+        topPanel.add(endDateField);
+        topPanel.add(filterButton);
+        topPanel.add(resetButton);
+        
+        // Panel for the back button
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.add(backButton);
+        
+        // Add panels to the frame
+        frame.add(topPanel, BorderLayout.NORTH);
+        frame.add(scrollPane, BorderLayout.CENTER);
+        frame.add(bottomPanel, BorderLayout.SOUTH);
+
+        // Show the frame
+        frame.setVisible(true);
+        
+        // Add action listeners
+        addListeners();
+    }
+
+    private void addListeners() {
+        // Filter button listener
+        filterButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String startDate = startDateField.getText();
+                String endDate = endDateField.getText();
+                String selectedView = (String) viewComboBox.getSelectedItem();
+                
+                // Based on the selected view, call the respective query
+                if (selectedView.equals("Assignee View")) {
+                    applyAssigneeViewFilter(startDate, endDate);
+                } else {
+                    applyKBViewFilter(startDate, endDate);
+                }
+            }
+        });
+
+        // Reset button listener
+        resetButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startDateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));  // Reset to today's date
+                endDateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));    // Reset to today's date
+                // Clear filters and show all data
+                resetTable();
+            }
+        });
+
+        // Back button listener
+        backButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Go back to the previous screen or main menu (logic depends on your UI structure)
+                System.out.println("Back button clicked.");
+                // For now, we can just close the window.
+                frame.dispose();
+            }
+        });
+    }
+
+    private void applyAssigneeViewFilter(String startDate, String endDate) {
+        // Here, you can call the "query with assignee and date" SQL query based on the date filter
+        // For now, just simulate with some sample data
+        resetTable(); // Clear any previous data
+
+        // Example data - Replace with actual query results
+        Object[][] data = {
+            {"John", "1.0", 10, 36000, 40000, "90%", 50},
+            {"Alice", "1.0", 12, 43200, 45000, "96%", 60}
+        };
+        for (Object[] row : data) {
+            tableModel.addRow(row);
+        }
+        addTotalRow();
+    }
+
+    private void applyKBViewFilter(String startDate, String endDate) {
+        // Here, you can call the "query with KB and date" SQL query based on the date filter
+        // For now, just simulate with some sample data
+        resetTable(); // Clear any previous data
+
+        // Example data - Replace with actual query results
+        Object[][] data = {
+            {"Team A", "1.0", 10, 36000, 40000, "90%", 50, 5},
+            {"Team B", "1.0", 12, 43200, 45000, "96%", 60, 6}
+        };
+        for (Object[] row : data) {
+            tableModel.addRow(row);
+        }
+        addTotalRow();
+    }
+
+    private void resetTable() {
+        // Remove all previous rows
+        tableModel.setRowCount(0);
+    }
+
+    private void addTotalRow() {
+        // Adding a "Total" row at the end
+        Object[] totalRow = new Object[tableModel.getColumnCount()];
+        totalRow[0] = "Total";
+        // Example totals, replace with actual summation logic
+        totalRow[2] = 22;  // Total Tasks
+        totalRow[3] = 79200;  // Total Log Seconds
+        totalRow[4] = 85000;  // Total Log Estimate
+        totalRow[5] = "93%";  // Estimate vs Logged
+        totalRow[6] = 110;  // Total Story Points
+        totalRow[7] = 11;  // Total Resources Worked
+        tableModel.addRow(totalRow);
+    }
+
+    public static void main(String[] args) {
+        new DataFilterWindow();  // Create the window
+    }
+}
