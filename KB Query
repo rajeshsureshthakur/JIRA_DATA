@@ -1,0 +1,26 @@
+SELECT 
+    j.KB_SCRUM_TEAM,
+    jwl.fix_version,
+    COUNT(DISTINCT jwl.Key) AS total_keys,  -- Count of distinct Keys (tasks) for each Scrum Team
+    SUM(jwl.log_seconds) AS total_log_seconds,  -- Sum of log_seconds (total logged hours)
+    SUM(jwl.log_estimate) AS total_log_estimate,  -- Sum of log_estimate (total estimated hours)
+    -- Calculate the Estimate v/s Logged percentage (logged_hours / estimated_hours * 100)
+    CASE 
+        WHEN SUM(jwl.log_estimate) > 0 THEN 
+            (SUM(jwl.log_seconds) / SUM(jwl.log_estimate)) * 100
+        ELSE 
+            0 
+    END AS "Estimate v/s Logged",  -- Estimate v/s Logged percentage with %
+    SUM(jwl.story_points) AS total_story_points,  -- Sum of story_points for each Scrum Team
+    COUNT(DISTINCT jwl.assignee) AS total_resources_worked  -- Count of unique assignees for each Scrum Team
+FROM 
+    jiraworklog jwl
+JOIN 
+    jiradata j ON jwl.Key = j.Key  -- Join on the Key column to get KB_SCRUM_TEAM
+WHERE 
+    jwl.fix_version = :fix_version  -- Replace with the desired fix_version or bind parameter
+GROUP BY 
+    j.KB_SCRUM_TEAM, 
+    jwl.fix_version
+ORDER BY 
+    j.KB_SCRUM_TEAM;
