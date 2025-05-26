@@ -1,3 +1,16 @@
+private void applyInitialDataLoad() {
+    resetTable();  // Clear any previous data
+
+    String selectedView = (String) viewComboBox.getSelectedItem();
+    
+    if ("Assignee View".equals(selectedView)) {
+        applyAssigneeViewFilter("", "");
+    } else if ("KB_Scrum View".equals(selectedView)) {
+        applyKBViewFilter("", "");
+    }
+}
+
+
 private void addListeners() {
     // Filter button listener
     filterButton.addActionListener(new ActionListener() {
