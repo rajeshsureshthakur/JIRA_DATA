@@ -1,3 +1,48 @@
+private void addListeners() {
+    // Filter button listener
+    filterButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String startDate = startDateField.getText();
+            String endDate = endDateField.getText();
+            String selectedView = (String) viewComboBox.getSelectedItem();
+
+            // Based on the selected view, call the respective query with date filter
+            if (selectedView.equals("Assignee View")) {
+                applyAssigneeViewFilter(startDate, endDate);
+            } else if (selectedView.equals("KB_Scrum View")) {
+                applyKBViewFilter(startDate, endDate);
+            }
+        }
+    });
+
+    // Reset button listener
+    resetButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            startDateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));  // Reset to today's date
+            endDateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));    // Reset to today's date
+            // Clear filters and show all data
+            resetTable();
+            applyInitialDataLoad();  // Reload full data without date filter
+        }
+    });
+
+    // Back button listener
+    backButton.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            // Go back to the previous screen or main menu (logic depends on your UI structure)
+            System.out.println("Back button clicked.");
+            // For now, we can just close the window.
+            frame.dispose();
+        }
+    });
+}
+
+
+
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
