@@ -1,0 +1,23 @@
+SELECT 
+    assignee,
+    fix_version,
+    COUNT(DISTINCT Key) AS total_tasks,  -- Count of distinct Keys (tasks) for each assignee
+    SUM(log_seconds) AS total_log_seconds,  -- Sum of log_seconds (total logged hours)
+    SUM(log_estimate) AS total_log_estimate,  -- Sum of log_estimate (total estimated hours)
+    -- Calculate the Estimate vs Logged percentage (logged_hours / estimated_hours * 100)
+    CASE 
+        WHEN SUM(log_estimate) > 0 THEN 
+            (SUM(log_seconds) / SUM(log_estimate)) * 100
+        ELSE 
+            0 
+    END AS "Estimate v/s Logged",  -- Estimate v/s Logged percentage
+    SUM(story_points) AS total_story_points  -- Sum of story_points for each assignee
+FROM 
+    jiraworklog
+WHERE 
+    fix_version = :fix_version  -- Replace with the desired fix_version or bind parameter
+GROUP BY 
+    assignee,
+    fix_version
+ORDER BY 
+    assignee;
