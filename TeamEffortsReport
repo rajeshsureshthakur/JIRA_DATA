@@ -2,6 +2,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
+import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -14,6 +15,7 @@ public class DataFilterWindow {
     private JTextField startDateField, endDateField;
     private JButton filterButton, resetButton, backButton;
     private DefaultTableModel tableModel;
+    private Connection connection;
     
     // Constructor to initialize the window
     public DataFilterWindow() {
@@ -75,6 +77,13 @@ public class DataFilterWindow {
         
         // Add action listeners
         addListeners();
+        
+        // Establish database connection
+        try {
+            connection = DriverManager.getConnection("jdbc:oracle:thin:@your_db_host:port:service_name", "username", "password");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void addListeners() {
@@ -119,35 +128,80 @@ public class DataFilterWindow {
     }
 
     private void applyAssigneeViewFilter(String startDate, String endDate) {
-        // Here, you can call the "query with assignee and date" SQL query based on the date filter
-        // For now, just simulate with some sample data
+        // Execute the "query with assignee and date" SQL query based on the date filter
         resetTable(); // Clear any previous data
 
-        // Example data - Replace with actual query results
-        Object[][] data = {
-            {"John", "1.0", 10, 36000, 40000, "90%", 50},
-            {"Alice", "1.0", 12, 43200, 45000, "96%", 60}
-        };
-        for (Object[] row : data) {
-            tableModel.addRow(row);
+        String query = "SELECT u.user_name, jwl.fix_version, COUNT(DISTINCT jwl.Key) AS total_tasks, " +
+                       "SUM(jwl.log_seconds) AS total_log_seconds, SUM(jwl.log_estimate) AS total_log_estimate, " +
+                       "CASE WHEN SUM(jwl.log_estimate) > 0 THEN TO_CHAR((SUM(jwl.log_seconds) / SUM(jwl.log_estimate)) * 100) || '%' ELSE '0%' END AS \"Estimate v/s Logged\", " +
+                       "SUM(jwl.story_points) AS total_story_points " +
+                       "FROM jiraworklog jwl " +
+                       "JOIN users u ON jwl.assignee = u.user_soeid " +
+                       "WHERE jwl.fix_version = ? " +
+                       "AND jwl.log_date BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD') " +
+                       "GROUP BY u.user_name, jwl.fix_version " +
+                       "ORDER BY u.user_name";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, "1.0");  // Replace with the actual fix_version
+            stmt.setString(2, startDate);
+            stmt.setString(3, endDate);
+            
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String userName = rs.getString("user_name");
+                String fixVersion = rs.getString("fix_version");
+                int totalTasks = rs.getInt("total_tasks");
+                int totalLogSeconds = rs.getInt("total_log_seconds");
+                int totalLogEstimate = rs.getInt("total_log_estimate");
+                String estimateVsLogged = rs.getString("Estimate v/s Logged");
+                int totalStoryPoints = rs.getInt("total_story_points");
+
+                tableModel.addRow(new Object[]{userName, fixVersion, totalTasks, totalLogSeconds, totalLogEstimate, estimateVsLogged, totalStoryPoints});
+            }
+            addTotalRow();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        addTotalRow();
     }
 
     private void applyKBViewFilter(String startDate, String endDate) {
-        // Here, you can call the "query with KB and date" SQL query based on the date filter
-        // For now, just simulate with some sample data
+        // Execute the "query with KB and date" SQL query based on the date filter
         resetTable(); // Clear any previous data
 
-        // Example data - Replace with actual query results
-        Object[][] data = {
-            {"Team A", "1.0", 10, 36000, 40000, "90%", 50, 5},
-            {"Team B", "1.0", 12, 43200, 45000, "96%", 60, 6}
-        };
-        for (Object[] row : data) {
-            tableModel.addRow(row);
+        String query = "SELECT j.KB_SCRUM_TEAM, jwl.fix_version, COUNT(DISTINCT jwl.Key) AS total_keys, " +
+                       "SUM(jwl.log_seconds) AS total_log_seconds, SUM(jwl.log_estimate) AS total_log_estimate, " +
+                       "CASE WHEN SUM(jwl.log_estimate) > 0 THEN (SUM(jwl.log_seconds) / SUM(jwl.log_estimate)) * 100 ELSE 0 END AS \"Estimate v/s Logged\", " +
+                       "SUM(jwl.story_points) AS total_story_points, COUNT(DISTINCT jwl.assignee) AS total_resources_worked " +
+                       "FROM jiraworklog jwl " +
+                       "JOIN jiradata j ON jwl.Key = j.Key " +
+                       "WHERE jwl.fix_version = ? " +
+                       "AND jwl.log_date BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD') " +
+                       "GROUP BY j.KB_SCRUM_TEAM, jwl.fix_version " +
+                       "ORDER BY j.KB_SCRUM_TEAM";
+        
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, "1.0");  // Replace with the actual fix_version
+            stmt.setString(2, startDate);
+            stmt.setString(3, endDate);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String scrumTeam = rs.getString("KB_SCRUM_TEAM");
+                String fixVersion = rs.getString("fix_version");
+                int totalKeys = rs.getInt("total_keys");
+                int totalLogSeconds = rs.getInt("total_log_seconds");
+                int totalLogEstimate = rs.getInt("total_log_estimate");
+                String estimateVsLogged = rs.getString("Estimate v/s Logged");
+                int totalStoryPoints = rs.getInt("total_story_points");
+                int totalResourcesWorked = rs.getInt("total_resources_worked");
+
+                tableModel.addRow(new Object[]{scrumTeam, fixVersion, totalKeys, totalLogSeconds, totalLogEstimate, estimateVsLogged, totalStoryPoints, totalResourcesWorked});
+            }
+            addTotalRow();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        addTotalRow();
     }
 
     private void resetTable() {
