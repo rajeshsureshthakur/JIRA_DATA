@@ -1,3 +1,27 @@
+private void setAssigneeViewColumnWidths() {
+    // Set preferred width for each column for Assignee View
+    dataTable.getColumnModel().getColumn(0).setPreferredWidth(150);  // Assignee column width
+    dataTable.getColumnModel().getColumn(1).setPreferredWidth(100);  // Fix Version column width
+    dataTable.getColumnModel().getColumn(2).setPreferredWidth(120);  // Total Tasks column width
+    dataTable.getColumnModel().getColumn(3).setPreferredWidth(150);  // Total Log Seconds column width
+    dataTable.getColumnModel().getColumn(4).setPreferredWidth(150);  // Total Log Estimate column width
+    dataTable.getColumnModel().getColumn(5).setPreferredWidth(150);  // Estimate v/s Logged column width
+    dataTable.getColumnModel().getColumn(6).setPreferredWidth(150);  // Total Story Points column width
+}
+
+private void setKBViewColumnWidths() {
+    // Set preferred width for each column for KB_Scrum View
+    dataTable.getColumnModel().getColumn(0).setPreferredWidth(180);  // KB_SCRUM_TEAM column width
+    dataTable.getColumnModel().getColumn(1).setPreferredWidth(120);  // Fix Version column width
+    dataTable.getColumnModel().getColumn(2).setPreferredWidth(130);  // Total Keys column width
+    dataTable.getColumnModel().getColumn(3).setPreferredWidth(150);  // Total Log Seconds column width
+    dataTable.getColumnModel().getColumn(4).setPreferredWidth(150);  // Total Log Estimate column width
+    dataTable.getColumnModel().getColumn(5).setPreferredWidth(150);  // Estimate v/s Logged column width
+    dataTable.getColumnModel().getColumn(6).setPreferredWidth(150);  // Total Story Points column width
+    dataTable.getColumnModel().getColumn(7).setPreferredWidth(150);  // Total Resources Worked column width
+}
+
+
 private void setTableCellRenderer() {
     // Custom cell renderer for centering text and applying colors
     dataTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
