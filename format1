@@ -1,0 +1,51 @@
+private void setTableCellRenderer() {
+    // Custom cell renderer for centering text and applying colors
+    dataTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            // Get the default component from JTable's renderer (this is a JLabel)
+            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+            // Check if the column is not the first column (Assignee)
+            if (column != 0) {
+                // Center all values except the first column (Assignee)
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+            } else {
+                // Left align the first column (Assignee)
+                label.setHorizontalAlignment(SwingConstants.LEFT);
+            }
+
+            // If it's the "Estimate v/s Logged" column (column 5)
+            if (column == 5) {
+                String cellValue = (String) value;
+
+                // Check if the value ends with '%' (percentage) and handle it accordingly
+                if (cellValue.endsWith("%") && !cellValue.equals("0%")) {
+                    // Remove the '%' sign and parse the remaining value to double
+                    double percentage = Double.parseDouble(cellValue.substring(0, cellValue.length() - 1));
+
+                    // If the percentage is less than 95%, set the background to light red and text to dark red
+                    if (percentage < 95) {
+                        label.setBackground(Color.LIGHT_GRAY);  // Light red background
+                        label.setForeground(Color.RED);        // Dark red text color
+                    } else {
+                        label.setBackground(Color.WHITE);      // White background
+                        label.setForeground(Color.BLACK);      // Black text color
+                    }
+                } else {
+                    // For "0%" or non-percentage values
+                    label.setBackground(Color.WHITE);      // White background
+                    label.setForeground(Color.BLACK);      // Black text color
+                }
+            }
+
+            // If it's the last row (total row), highlight it with blue
+            if (row == table.getRowCount() - 1) {
+                label.setBackground(Color.BLUE);        // Set background to blue for the total row
+                label.setForeground(Color.WHITE);       // White text for the total row
+            }
+
+            return label;
+        }
+    });
+}
