@@ -1,0 +1,19 @@
+SELECT 
+    capability, 
+    COUNT(*) AS total_count
+FROM 
+    zephyrdata
+GROUP BY 
+    capability
+
+UNION ALL
+
+SELECT 
+    'Total' AS capability, 
+    COUNT(*) AS total_count
+FROM 
+    zephyrdata
+
+ORDER BY 
+    CASE WHEN capability = 'Total' THEN 1 ELSE 0 END,  -- Push "Total" to the end
+    capability;
