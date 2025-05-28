@@ -1,0 +1,109 @@
+import javax.swing.*;
+import javax.swing.table.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.*;
+import java.util.List;
+
+public class ArtCapabilityReportPanel extends JPanel {
+    private JTable table;
+    private DefaultTableModel tableModel;
+    private JComboBox<String> artFilterCombo;
+    private JComboBox<String> capabilityFilterCombo;
+    private JButton backButton;
+
+    public ArtCapabilityReportPanel(Connection conn, Runnable onBackPressed) {
+        setLayout(new BorderLayout());
+
+        // Top Filter Panel
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        artFilterCombo = new JComboBox<>();
+        capabilityFilterCombo = new JComboBox<>();
+        filterPanel.add(new JLabel("Filter by ART:"));
+        filterPanel.add(artFilterCombo);
+        filterPanel.add(new JLabel("Filter by Capability:"));
+        filterPanel.add(capabilityFilterCombo);
+
+        // Table setup
+        tableModel = new DefaultTableModel(new String[]{"ART", "Capability", "Capability Name", "Total Count"}, 0);
+        table = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        // Back Button Panel
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        backButton = new JButton("Back");
+        bottomPanel.add(backButton);
+
+        add(filterPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        // Load data from DB
+        loadData(conn);
+        
+        // Filter logic
+        artFilterCombo.addActionListener(e -> applyFilter());
+        capabilityFilterCombo.addActionListener(e -> applyFilter());
+
+        // Back button action
+        backButton.addActionListener(e -> onBackPressed.run());
+    }
+
+    private void loadData(Connection conn) {
+        Set<String> artSet = new TreeSet<>();
+        Set<String> capabilitySet = new TreeSet<>();
+        List<Object[]> rows = new ArrayList<>();
+
+        try (PreparedStatement stmt = conn.prepareStatement(
+                "SELECT z.art, z.capability, c.capability_name, COUNT(*) AS total_count " +
+                "FROM zephyrdata z LEFT JOIN capabilitynames c ON z.capability = c.capability " +
+                "GROUP BY z.art, z.capability, c.capability_name " +
+                "ORDER BY z.art, z.capability"
+        )) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String art = rs.getString(1);
+                String capability = rs.getString(2);
+                String name = rs.getString(3);
+                int count = rs.getInt(4);
+
+                artSet.add(art);
+                capabilitySet.add(capability);
+                rows.add(new Object[]{art, capability, name, count});
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Populate dropdowns
+        artFilterCombo.addItem("All");
+        for (String art : artSet) artFilterCombo.addItem(art);
+
+        capabilityFilterCombo.addItem("All");
+        for (String cap : capabilitySet) capabilityFilterCombo.addItem(cap);
+
+        // Load all data to table
+        for (Object[] row : rows) {
+            tableModel.addRow(row);
+        }
+    }
+
+    private void applyFilter() {
+        String selectedArt = (String) artFilterCombo.getSelectedItem();
+        String selectedCapability = (String) capabilityFilterCombo.getSelectedItem();
+
+        TableRowSorter<TableModel> sorter = new TableRowSorter<>(tableModel);
+        List<RowFilter<Object, Object>> filters = new ArrayList<>();
+
+        if (!"All".equals(selectedArt)) {
+            filters.add(RowFilter.regexFilter("^" + Pattern.quote(selectedArt) + "$", 0));
+        }
+        if (!"All".equals(selectedCapability)) {
+            filters.add(RowFilter.regexFilter("^" + Pattern.quote(selectedCapability) + "$", 1));
+        }
+
+        sorter.setRowFilter(filters.isEmpty() ? null : RowFilter.andFilter(filters));
+        table.setRowSorter(sorter);
+    }
+}
