@@ -1,0 +1,105 @@
+JButton missingButton = new JButton("Missing Capability");
+bottomPanel.add(missingButton);
+
+// Action to show missing capabilities
+missingButton.addActionListener(e -> {
+    JFrame frame = new JFrame("Missing Capabilities");
+    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    frame.setContentPane(new MissingCapabilityPanel(conn));
+    frame.setSize(700, 400);
+    frame.setLocationRelativeTo(null);
+    frame.setVisible(true);
+});
+
+
+import javax.swing.*;
+import javax.swing.table.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import java.util.*;
+import java.util.regex.Pattern;
+
+public class MissingCapabilityPanel extends JPanel {
+    private JTable table;
+    private DefaultTableModel tableModel;
+    private JComboBox<String> teamFilterCombo;
+    private JButton backButton;
+
+    public MissingCapabilityPanel(Connection conn) {
+        setLayout(new BorderLayout());
+
+        // Top Filter Panel
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        teamFilterCombo = new JComboBox<>();
+        filterPanel.add(new JLabel("Filter by KB Scrum Team:"));
+        filterPanel.add(teamFilterCombo);
+
+        // Table setup
+        tableModel = new DefaultTableModel(new String[]{"Testcase Name", "KB Scrum Team", "NFT Tester"}, 0);
+        table = new JTable(tableModel);
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        // Bottom Panel
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        backButton = new JButton("Back");
+        bottomPanel.add(backButton);
+
+        add(filterPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(bottomPanel, BorderLayout.SOUTH);
+
+        loadData(conn);
+
+        teamFilterCombo.addActionListener(e -> applyFilter());
+
+        // Close window
+        backButton.addActionListener(e -> {
+            Window window = SwingUtilities.getWindowAncestor(this);
+            if (window != null) window.dispose();
+        });
+    }
+
+    private void loadData(Connection conn) {
+        Set<String> scrumTeams = new TreeSet<>();
+
+        try (PreparedStatement stmt = conn.prepareStatement(
+            "SELECT z.testcase_name, z.scrum_team, u.user_name " +
+            "FROM zephyrdata z " +
+            "LEFT JOIN users u ON z.qa_contact = u.user_soeid " +
+            "WHERE z.release_id = 100 AND z.capability IS NULL"
+        )) {
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String testcase = rs.getString(1);
+                String team = rs.getString(2);
+                String tester = rs.getString(3);
+
+                scrumTeams.add(team == null ? "Unassigned" : team);
+                tableModel.addRow(new Object[]{
+                    testcase,
+                    team == null ? "Unassigned" : team,
+                    tester == null ? "Unknown" : tester
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        teamFilterCombo.addItem("All");
+        for (String team : scrumTeams) teamFilterCombo.addItem(team);
+    }
+
+    private void applyFilter() {
+        String selectedTeam = (String) teamFilterCombo.getSelectedItem();
+        TableRowSorter<TableModel> sorter = new TableRowSorter<>(tableModel);
+
+        if (!"All".equals(selectedTeam)) {
+            sorter.setRowFilter(RowFilter.regexFilter("^" + Pattern.quote(selectedTeam) + "$", 1));
+        } else {
+            sorter.setRowFilter(null);
+        }
+
+        table.setRowSorter(sorter);
+    }
+}
