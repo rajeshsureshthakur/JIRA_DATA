@@ -1,3 +1,18 @@
+String query = "SELECT " +
+                   "REGEXP_REPLACE(j.Labels, 'NFT_CHILD_TASK,?', '') AS project_phase, " +  // Remove NFT_CHILD_TASK and keep the remaining label
+                   "jwl.fix_version, COUNT(DISTINCT jwl.Key) AS total_keys, " +
+                   "SUM(jwl.log_seconds) AS total_log_seconds, SUM(jwl.log_estimate) AS total_log_estimate, " +
+                   "CASE WHEN SUM(jwl.log_estimate) > 0 THEN (SUM(jwl.log_seconds) / SUM(jwl.log_estimate)) * 100 ELSE 0 END AS \"Estimate v/s Logged\", " +
+                   "SUM(jwl.story_points) AS total_story_points, COUNT(DISTINCT jwl.assignee) AS total_resources_worked " +
+                   "FROM jiraworklog jwl " +
+                   "JOIN jiradata j ON jwl.Key = j.Key " +  // Join on the Key column to access Labels in jiradata table
+                   "WHERE jwl.fix_version = ? " +
+                   "AND jwl.log_date BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD') " +
+                   "AND REGEXP_LIKE(j.Labels, '^(?!.*NFT_CHILD_TASK).*') " + // Exclude 'NFT_CHILD_TASK' from Labels column
+                   "GROUP BY REGEXP_REPLACE(j.Labels, 'NFT_CHILD_TASK,?', ''), jwl.fix_version " + // Group by the remaining project phase
+                   "ORDER BY project_phase";
+
+
 private void addListeners() {
     // Drop-down listener for changing view
     viewComboBox.addActionListener(new ActionListener() {
