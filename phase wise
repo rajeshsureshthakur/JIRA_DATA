@@ -1,0 +1,89 @@
+private void addListeners() {
+    // Drop-down listener for changing view
+    viewComboBox.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            String selectedView = (String) viewComboBox.getSelectedItem();
+
+            // Apply the initial data load based on the selected view
+            resetTable();  // Clear any previous rows
+
+            if ("Assignee View".equals(selectedView)) {
+                setAssigneeViewHeaders();  // Set headers for Assignee View
+                applyAssigneeViewFilter("", "");  // Load data for Assignee View
+                setAssigneeViewColumnWidths();  // Set column widths for Assignee View
+            } else if ("KB_Scrum View".equals(selectedView)) {
+                setKBViewHeaders();  // Set headers for KB_Scrum View
+                applyKBViewFilter("", "");  // Load data for KB_Scrum View
+                setKBViewColumnWidths();  // Set column widths for KB_Scrum View
+            } else if ("Project Phase View".equals(selectedView)) {
+                setProjectPhaseViewHeaders();  // Set headers for Project Phase View
+                applyProjectPhaseViewFilter("", "");  // Load data for Project Phase View
+                setProjectPhaseViewColumnWidths();  // Set column widths for Project Phase View
+            }
+        }
+    });
+}
+
+
+private void setProjectPhaseViewHeaders() {
+    // Set column headers for Project Phase View
+    String[] projectPhaseColumns = {"Project Phase", "Fix Version", "Total Keys", "Total Log Seconds", "Total Log Estimate", "Estimate v/s Logged", "Total Story Points", "Total Resources Worked"};
+    tableModel.setColumnIdentifiers(projectPhaseColumns);  // Set the column headers for Project Phase View
+}
+
+
+private void applyProjectPhaseViewFilter(String startDate, String endDate) {
+    // Execute the "query with KB and date" SQL query for Project Phase View based on the date filter
+    resetTable(); // Clear any previous data
+
+    String query = "SELECT " +
+                   "REGEXP_REPLACE(jwl.Labels, 'NFT_CHILD_TASK', '') AS project_phase, " +
+                   "jwl.fix_version, COUNT(DISTINCT jwl.Key) AS total_keys, " +
+                   "SUM(jwl.log_seconds) AS total_log_seconds, SUM(jwl.log_estimate) AS total_log_estimate, " +
+                   "CASE WHEN SUM(jwl.log_estimate) > 0 THEN (SUM(jwl.log_seconds) / SUM(jwl.log_estimate)) * 100 ELSE 0 END AS \"Estimate v/s Logged\", " +
+                   "SUM(jwl.story_points) AS total_story_points, COUNT(DISTINCT jwl.assignee) AS total_resources_worked " +
+                   "FROM jiraworklog jwl " +
+                   "JOIN jiradata j ON jwl.Key = j.Key " +
+                   "WHERE jwl.fix_version = ? " +
+                   "AND jwl.log_date BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD') " +
+                   "AND REGEXP_LIKE(jwl.Labels, '^(?!.*NFT_CHILD_TASK).*') " + // This ensures "NFT_CHILD_TASK" is excluded
+                   "GROUP BY REGEXP_REPLACE(jwl.Labels, 'NFT_CHILD_TASK', ''), jwl.fix_version " +
+                   "ORDER BY project_phase";
+
+    try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        stmt.setString(1, "1.0");  // Replace with the actual fix_version
+        stmt.setString(2, startDate);
+        stmt.setString(3, endDate);
+
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            String projectPhase = rs.getString("project_phase");
+            String fixVersion = rs.getString("fix_version");
+            int totalKeys = rs.getInt("total_keys");
+            int totalLogSeconds = rs.getInt("total_log_seconds");
+            int totalLogEstimate = rs.getInt("total_log_estimate");
+            String estimateVsLogged = rs.getString("Estimate v/s Logged");
+            int totalStoryPoints = rs.getInt("total_story_points");
+            int totalResourcesWorked = rs.getInt("total_resources_worked");
+
+            tableModel.addRow(new Object[]{projectPhase, fixVersion, totalKeys, totalLogSeconds, totalLogEstimate, estimateVsLogged, totalStoryPoints, totalResourcesWorked});
+        }
+        addTotalRow();  // Add the total row at the end
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+
+
+private void setProjectPhaseViewColumnWidths() {
+    // Set preferred width for each column for Project Phase View
+    dataTable.getColumnModel().getColumn(0).setPreferredWidth(180);  // Project Phase column width
+    dataTable.getColumnModel().getColumn(1).setPreferredWidth(120);  // Fix Version column width
+    dataTable.getColumnModel().getColumn(2).setPreferredWidth(130);  // Total Keys column width
+    dataTable.getColumnModel().getColumn(3).setPreferredWidth(150);  // Total Log Seconds column width
+    dataTable.getColumnModel().getColumn(4).setPreferredWidth(150);  // Total Log Estimate column width
+    dataTable.getColumnModel().getColumn(5).setPreferredWidth(150);  // Estimate v/s Logged column width
+    dataTable.getColumnModel().getColumn(6).setPreferredWidth(150);  // Total Story Points column width
+    dataTable.getColumnModel().getColumn(7).setPreferredWidth(150);  // Total Resources Worked column width
+}
