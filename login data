@@ -1,0 +1,12 @@
+SELECT 
+    TO_DATE(login_time, 'YYYY-MM-DD') AS day,
+    COUNT(DISTINCT userID) AS concurrent_users
+FROM 
+    login_history
+WHERE 
+    TO_DATE(login_time, 'YYYY-MM-DD') = TO_DATE(:date, 'YYYY-MM-DD')
+GROUP BY 
+    TO_DATE(login_time, 'YYYY-MM-DD'),
+    login_time
+ORDER BY 
+    login_time;
