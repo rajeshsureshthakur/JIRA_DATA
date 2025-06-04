@@ -1,3 +1,68 @@
+private void loadData() {
+    Map<String, int[]> assigneeRagMap = new HashMap<>();
+
+    String url = "jdbc:your_database_url";
+    String username = "your_db_user";
+    String password = "your_db_password";
+
+    // Updated query to include the username
+    String query = "SELECT sh.assignee, u.username, sh.start_date, sh.end_date " +
+                   "FROM statushistory sh " +
+                   "JOIN users u ON sh.assignee = u.user_id";  // Assuming assignee is user_id in users table
+
+    try (Connection conn = DriverManager.getConnection(url, username, password);
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(query)) {
+
+        while (rs.next()) {
+            String assignee = rs.getString("assignee");
+            String username = rs.getString("username");  // Fetch username
+            LocalDate start = rs.getDate("start_date") != null ? rs.getDate("start_date").toLocalDate() : null;
+            LocalDate end = rs.getDate("end_date") != null ? rs.getDate("end_date").toLocalDate() : null;
+
+            String ragStatus;
+            if (start == null && end == null) {
+                ragStatus = "Not Started";
+            } else {
+                if (end == null) end = LocalDate.now();
+                long days = ChronoUnit.DAYS.between(start, end);
+                if (days < 4) ragStatus = "Green";
+                else if (days <= 6) ragStatus = "Amber";
+                else ragStatus = "Red";
+            }
+
+            assigneeRagMap.putIfAbsent(assignee, new int[4]);
+            switch (ragStatus) {
+                case "Green" -> assigneeRagMap.get(assignee)[0]++;
+                case "Amber" -> assigneeRagMap.get(assignee)[1]++;
+                case "Red" -> assigneeRagMap.get(assignee)[2]++;
+                case "Not Started" -> assigneeRagMap.get(assignee)[3]++;
+            }
+
+            // Add the username to the map for later use in the model
+            assigneeRagMap.put(assignee + "_" + username, assigneeRagMap.get(assignee));
+        }
+
+        // Add rows to the model including username
+        for (Map.Entry<String, int[]> entry : assigneeRagMap.entrySet()) {
+            String[] keyParts = entry.getKey().split("_");
+            String assigneeName = keyParts[0];
+            String username = keyParts[1];
+            int[] counts = entry.getValue();
+            model.addRow(new Object[]{
+                assigneeName, username, counts[0], counts[1], counts[2], counts[3]
+            });
+        }
+
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Error fetching data: " + ex.getMessage());
+    }
+}
+
+
+
+
 GET https://your-domain.atlassian.net/rest/api/2/search?jql=assignee=rajk89 AND updated >= -26w AND fixVersion IS NOT EMPTY&fields=fixVersion
 
 private void addColorRenderer() {
