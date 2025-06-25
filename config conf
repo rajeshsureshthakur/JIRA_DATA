@@ -1,3 +1,11 @@
+ String selected = (String) teamDropdown.getSelectedItem();
+
+    boolean valid = selected != null && !selected.equals("Select Team Name");
+
+    releaseIdField.setEnabled(valid);
+    releaseIdDropdown.setEnabled(valid);
+
+
 private JComboBox<String> teamDropdown;
 
 ------
