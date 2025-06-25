@@ -1,0 +1,81 @@
+private JComboBox<String> teamDropdown;
+
+------
+
+// TEAM selection
+JLabel teamLabel = new JLabel("Team:");
+gbc.gridx = 0; gbc.gridy = 0;
+add(teamLabel, gbc);
+
+teamDropdown = new JComboBox<>();
+teamDropdown.setPreferredSize(new Dimension(200, 25));
+loadTeams(); // populate teams
+
+// Action: when team selected, filter STOP releases
+teamDropdown.addActionListener(e -> {
+    if (teamDropdown.getSelectedIndex() > 0) {  // skip "Select Team Name"
+        loadReleaseIds();
+    } else {
+        releaseIdDropdown.removeAllItems(); // clear if "Select" is chosen
+    }
+});
+
+gbc.gridx = 1;
+add(teamDropdown, gbc);
+
+------
+
+private void loadTeams() {
+    teamDropdown.removeAllItems();
+    teamDropdown.addItem("Select Team Name");
+    try (PreparedStatement ps = conn.prepareStatement("SELECT DISTINCT team_name FROM releases ORDER BY team_name");
+         ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+            teamDropdown.addItem(rs.getString("team_name"));
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+
+------
+
+private Map<String, String> releaseNameToIdMap = new HashMap<>();
+
+private void loadReleaseIds() {
+    releaseIdDropdown.removeAllItems();
+    releaseNameToIdMap.clear();
+
+    String selectedTeam = (String) teamDropdown.getSelectedItem();
+    if (selectedTeam == null || selectedTeam.equals("Select Team Name")) {
+        return;  // no team selected
+    }
+
+    try (PreparedStatement ps = conn.prepareStatement(
+            "SELECT release_id, release_name FROM releases WHERE zephyr_flag = 'Y' AND team_name = ?")) {
+        ps.setString(1, selectedTeam);
+        try (ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String id = rs.getString("release_id");
+                String name = rs.getString("release_name");
+                releaseNameToIdMap.put(name, id);
+                releaseIdDropdown.addItem(name);
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+}
+
+
+-------
+
+
+String selectedTeam = (String) teamDropdown.getSelectedItem();
+if (selectedTeam == null || selectedTeam.equals("Select Team Name")) {
+    JOptionPane.showMessageDialog(this, "Please select a valid Team Name.");
+    return;
+}
+
+
+
