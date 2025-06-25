@@ -1,4 +1,85 @@
- String selected = (String) teamDropdown.getSelectedItem();
+JButton addTeamButton = new JButton("Add Team");
+addTeamButton.addActionListener(e -> showAddTeamDialog());
+
+gbc.gridx = 2;
+add(addTeamButton, gbc);
+
+private void showAddTeamDialog() {
+    JDialog dialog = new JDialog(this, "Add New Team", true);
+    dialog.setSize(400, 250);
+    dialog.setLayout(new GridBagLayout());
+    dialog.setLocationRelativeTo(this);
+
+    GridBagConstraints dgbc = new GridBagConstraints();
+    dgbc.insets = new Insets(10, 10, 10, 10);
+    dgbc.fill = GridBagConstraints.HORIZONTAL;
+
+    JLabel teamLabel = new JLabel("Team Name:");
+    JTextField teamField = new JTextField(20);
+
+    JLabel pageIdLabel = new JLabel("Confluence Page ID:");
+    JTextField pageIdField = new JTextField(20);
+
+    JButton submitBtn = new JButton("Submit");
+    JButton cancelBtn = new JButton("Back");
+
+    // Submit Action
+    submitBtn.addActionListener(e -> {
+        String teamName = teamField.getText().trim();
+        String pageId = pageIdField.getText().trim();
+
+        if (teamName.isEmpty() || pageId.isEmpty()) {
+            JOptionPane.showMessageDialog(dialog, "Both fields are required.");
+            return;
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO teams (team_name, confluence_page_id) VALUES (?, ?)")) {
+            ps.setString(1, teamName);
+            ps.setString(2, pageId);
+            ps.executeUpdate();
+
+            JOptionPane.showMessageDialog(dialog, "Team added successfully.");
+            dialog.dispose();
+            loadTeams(); // refresh dropdown
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(dialog, "Error saving to DB.");
+        }
+    });
+
+    cancelBtn.addActionListener(e -> dialog.dispose());
+
+    // Add components to dialog
+    dgbc.gridx = 0; dgbc.gridy = 0;
+    dialog.add(teamLabel, dgbc);
+    dgbc.gridx = 1;
+    dialog.add(teamField, dgbc);
+
+    dgbc.gridx = 0; dgbc.gridy = 1;
+    dialog.add(pageIdLabel, dgbc);
+    dgbc.gridx = 1;
+    dialog.add(pageIdField, dgbc);
+
+    dgbc.gridx = 0; dgbc.gridy = 2;
+    dialog.add(submitBtn, dgbc);
+    dgbc.gridx = 1;
+    dialog.add(cancelBtn, dgbc);
+
+    dialog.setVisible(true);
+}
+
+
+
+
+
+
+
+
+
+
+
+String selected = (String) teamDropdown.getSelectedItem();
 
     boolean valid = selected != null && !selected.equals("Select Team Name");
 
