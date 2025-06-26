@@ -2,7 +2,7 @@ WITH task_estimates AS (
     SELECT 
         assignee,
         Key,
-        MAX(log_estimate) AS log_estimate_per_task  -- <-- Only 1 estimate per defect (Key)
+        MAX(log_estimate) AS log_estimate_per_task
     FROM 
         jiraworklog
     WHERE 
@@ -34,10 +34,13 @@ FROM
 JOIN 
     users u ON jwl.assignee = u.user_soeid
 JOIN 
-    task_estimates te ON jwl.assignee = te.assignee AND jwl.Key = te.Key
+    task_estimates te ON te.Key = jwl.Key AND te.assignee = jwl.assignee
+
 WHERE 
     jwl.fix_version = '152'
+
 GROUP BY 
     u.user_name, jwl.fix_version
+
 ORDER BY 
     u.user_name;
