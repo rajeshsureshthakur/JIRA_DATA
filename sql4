@@ -1,0 +1,59 @@
+-- Step 1: One estimate and story_point per defect (Key)
+WITH unique_estimates AS (
+    SELECT
+        jwl.assignee,
+        jwl.Key,
+        MAX(jwl.log_estimate) AS one_estimate,
+        MAX(jwl.story_points) AS one_story_point
+    FROM
+        jiraworklog jwl
+    WHERE
+        jwl.fix_version = '152'
+    GROUP BY
+        jwl.assignee, jwl.Key
+),
+
+-- Step 2: Aggregate per assignee
+estimates_per_user AS (
+    SELECT
+        assignee,
+        SUM(one_estimate) AS total_estimate,
+        SUM(one_story_point) AS total_story_points
+    FROM
+        unique_estimates
+    GROUP BY
+        assignee
+)
+
+-- Step 3: Final main query
+SELECT 
+    u.user_name AS Assignee,
+    jwl.fix_version AS "Fix Version",
+    COUNT(DISTINCT jwl.Key) AS Total_Tasks,
+    ROUND(SUM(jwl.log_seconds) / 3600, 2) AS Total_Hours_Logged,
+    ROUND(e.total_estimate / 3600, 2) AS Total_Hours_Estimated,
+
+    CASE 
+        WHEN e.total_estimate > 0 THEN 
+            TO_CHAR(ROUND((SUM(jwl.log_seconds) / e.total_estimate) * 100, 2)) || '%'
+        ELSE 
+            '0%'
+    END AS "Estimated v/s Logged",
+
+    e.total_story_points AS Total_Story_Points
+
+FROM 
+    jiraworklog jwl
+JOIN 
+    users u ON jwl.assignee = u.user_soeid
+JOIN 
+    estimates_per_user e ON e.assignee = jwl.assignee
+
+WHERE 
+    jwl.fix_version = '152'
+
+GROUP BY 
+    u.user_name, jwl.fix_version, e.total_estimate, e.total_story_points
+
+ORDER BY 
+    u.user_name;
