@@ -1,0 +1,46 @@
+WITH task_estimates AS (
+    SELECT 
+        assignee,
+        Key,
+        MAX(log_estimate) AS log_estimate_per_task
+    FROM 
+        jiraworklog
+    WHERE 
+        fix_version = '152'
+    GROUP BY 
+        assignee, Key
+)
+SELECT 
+    u.user_name AS Assignee, 
+    jwl.fix_version AS "Fix Version",
+
+    COUNT(DISTINCT jwl.Key) AS Total_Tasks,
+
+    ROUND(SUM(jwl.log_seconds) / 3600, 2) AS Total_Hours_Logged,
+
+    ROUND(SUM(te.log_estimate_per_task) / 3600, 2) AS Total_Hours_Estimated,
+
+    CASE 
+        WHEN SUM(te.log_estimate_per_task) > 0 THEN 
+            TO_CHAR(ROUND((SUM(jwl.log_seconds) / SUM(te.log_estimate_per_task)) * 100, 2)) || '%'
+        ELSE 
+            '0%'
+    END AS "Estimated v/s Logged",
+
+    SUM(jwl.story_points) AS Total_Story_Points
+
+FROM 
+    jiraworklog jwl
+JOIN 
+    users u ON jwl.assignee = u.user_soeid
+JOIN 
+    task_estimates te ON te.Key = jwl.Key AND te.assignee = jwl.assignee
+
+WHERE 
+    jwl.fix_version = '152'
+
+GROUP BY 
+    u.user_name, jwl.fix_version
+
+ORDER BY 
+    u.user_name;
