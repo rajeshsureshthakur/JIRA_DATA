@@ -1,6 +1,43 @@
 startButton.addActionListener(new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent e) {
+        // Step 1: Prepare a text field with today's date
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        String today = LocalDate.now().format(formatter);
+        JTextField endDateField = new JTextField(today, 10);
+
+        // Step 2: Show it in an input dialog
+        int result = JOptionPane.showConfirmDialog(
+            null,
+            new Object[] { "Please enter tentative end date (YYYY-MM-DD):", endDateField },
+            "Enter End Date",
+            JOptionPane.OK_CANCEL_OPTION
+        );
+
+        // Step 3: Handle user input
+        if (result == JOptionPane.OK_OPTION) {
+            String endDate = endDateField.getText().trim();
+
+            // Basic validation
+            if (endDate.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                // Proceed with DB update
+                updateProjectInDB(projectId, endDate);
+            } else {
+                JOptionPane.showMessageDialog(null, "Invalid date format. Please use YYYY-MM-DD.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(null, "End date entry cancelled.");
+        }
+    }
+});
+
+
+
+
+
+startButton.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
         // Step 1: Prompt the user for the end date
         String endDate = JOptionPane.showInputDialog(
             null,
