@@ -1,28 +1,39 @@
-WITH task_estimates AS (
-    SELECT 
+-- Step 1: One estimate per Key (defect), grouped by assignee
+WITH unique_estimates AS (
+    SELECT
+        jwl.assignee,
+        jwl.Key,
+        MAX(jwl.log_estimate) AS one_estimate
+    FROM
+        jiraworklog jwl
+    WHERE
+        jwl.fix_version = '152'
+    GROUP BY
+        jwl.assignee, jwl.Key
+),
+
+-- Step 2: Aggregate estimates per assignee
+estimates_per_user AS (
+    SELECT
         assignee,
-        Key,
-        MAX(log_estimate) AS log_estimate_per_task
-    FROM 
-        jiraworklog
-    WHERE 
-        fix_version = '152'
-    GROUP BY 
-        assignee, Key
+        SUM(one_estimate) AS total_estimate
+    FROM
+        unique_estimates
+    GROUP BY
+        assignee
 )
+
+-- Step 3: Main query joining estimates and user info
 SELECT 
-    u.user_name AS Assignee, 
+    u.user_name AS Assignee,
     jwl.fix_version AS "Fix Version",
-
     COUNT(DISTINCT jwl.Key) AS Total_Tasks,
-
     ROUND(SUM(jwl.log_seconds) / 3600, 2) AS Total_Hours_Logged,
-
-    ROUND(SUM(te.log_estimate_per_task) / 3600, 2) AS Total_Hours_Estimated,
+    ROUND(e.total_estimate / 3600, 2) AS Total_Hours_Estimated,
 
     CASE 
-        WHEN SUM(te.log_estimate_per_task) > 0 THEN 
-            TO_CHAR(ROUND((SUM(jwl.log_seconds) / SUM(te.log_estimate_per_task)) * 100, 2)) || '%'
+        WHEN e.total_estimate > 0 THEN 
+            TO_CHAR(ROUND((SUM(jwl.log_seconds) / e.total_estimate) * 100, 2)) || '%'
         ELSE 
             '0%'
     END AS "Estimated v/s Logged",
@@ -34,13 +45,13 @@ FROM
 JOIN 
     users u ON jwl.assignee = u.user_soeid
 JOIN 
-    task_estimates te ON te.Key = jwl.Key AND te.assignee = jwl.assignee
+    estimates_per_user e ON e.assignee = jwl.assignee
 
 WHERE 
     jwl.fix_version = '152'
 
 GROUP BY 
-    u.user_name, jwl.fix_version
+    u.user_name, jwl.fix_version, e.total_estimate
 
 ORDER BY 
     u.user_name;
