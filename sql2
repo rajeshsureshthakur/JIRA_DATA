@@ -2,7 +2,7 @@ WITH task_estimates AS (
     SELECT 
         assignee,
         Key,
-        MAX(log_estimate) AS log_estimate_per_task
+        MAX(log_estimate) AS log_estimate_per_task  -- <-- Only 1 estimate per defect (Key)
     FROM 
         jiraworklog
     WHERE 
