@@ -1,3 +1,52 @@
+startButton.addActionListener(new ActionListener() {
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        // Step 1: Prompt the user for the end date
+        String endDate = JOptionPane.showInputDialog(
+            null,
+            "Please enter tentative end date (YYYY-MM-DD):",
+            "Enter End Date",
+            JOptionPane.QUESTION_MESSAGE
+        );
+
+        // Step 2: Check if user canceled or left it blank
+        if (endDate == null || endDate.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "End date is required to proceed.");
+            return;
+        }
+
+        // Optional: You can validate the date format here
+        if (!endDate.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            JOptionPane.showMessageDialog(null, "Please enter date in YYYY-MM-DD format.");
+            return;
+        }
+
+        // Step 3: Proceed with your existing DB logic, passing the endDate
+        // Example: updateProjectStatus(projectId, "Started", endDate);
+        updateProjectInDB(projectId, endDate);
+    }
+});
+
+// Sample DB update method
+public void updateProjectInDB(String projectId, String endDate) {
+    // Your existing DB update logic here
+    // Just include the endDate in your UPDATE statement
+    String sql = "UPDATE projects SET status = ?, tentative_end_date = ? WHERE project_id = ?";
+    
+    try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        pstmt.setString(1, "Started");
+        pstmt.setString(2, endDate);
+        pstmt.setString(3, projectId);
+        pstmt.executeUpdate();
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+}
+
+
+
+
+
 JButton addTeamButton = new JButton("Add Team");
 addTeamButton.addActionListener(e -> showAddTeamDialog());
 
