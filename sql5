@@ -1,0 +1,64 @@
+WITH unique_estimates AS (
+    SELECT 
+        REGEXP_REPLACE(j.Labels, 'NFT_CHILD_TASK', '') AS project_phase,
+        j.Key AS key,
+        MAX(jwl.log_estimate) AS one_estimate,
+        MAX(jwl.story_points) AS one_story_point
+    FROM 
+        jiraworklog jwl
+    JOIN 
+        jiradata j ON jwl.Key = j.Key
+    WHERE 
+        jwl.fix_version = 'NG_3.53'
+    GROUP BY 
+        REGEXP_REPLACE(j.Labels, 'NFT_CHILD_TASK', ''), 
+        j.Key
+),
+
+estimates_per_user AS (
+    SELECT 
+        project_phase,
+        SUM(one_estimate) AS total_estimate,
+        SUM(one_story_point) AS total_story_points
+    FROM 
+        unique_estimates
+    GROUP BY 
+        project_phase
+)
+
+SELECT
+    REGEXP_REPLACE(j.Labels, 'NFT_CHILD_TASK', '') AS project_phase,
+    jwl.fix_version,
+    COUNT(DISTINCT jwl.Key) AS total_keys,
+    ROUND(SUM(jwl.log_seconds) / 3600, 2) AS Total_Hours_Logged,
+    ROUND(e.total_estimate / 3600, 2) AS Total_Hours_Estimated,
+
+    CASE 
+        WHEN e.total_estimate > 0 THEN 
+            TO_CHAR(ROUND((SUM(jwl.log_seconds) / e.total_estimate) * 100, 2)) || '%'
+        ELSE 
+            '0%'
+    END AS "Estimated v/s Logged",
+
+    e.total_story_points AS Total_Story_Points,
+    COUNT(DISTINCT jwl.assignee) AS total_resources_worked
+
+FROM 
+    jiraworklog jwl
+JOIN 
+    jiradata j ON jwl.Key = j.Key
+JOIN 
+    estimates_per_user e 
+        ON e.project_phase = REGEXP_REPLACE(j.Labels, 'NFT_CHILD_TASK', '')
+
+WHERE 
+    jwl.fix_version = 'NG_3.53'
+
+GROUP BY 
+    REGEXP_REPLACE(j.Labels, 'NFT_CHILD_TASK', ''),
+    jwl.fix_version,
+    e.total_estimate,
+    e.total_story_points
+
+ORDER BY 
+    project_phase;
