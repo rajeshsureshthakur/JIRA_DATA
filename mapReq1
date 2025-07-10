@@ -1,0 +1,163 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.File;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class RequirementMapperScreen {
+    private JFrame frame;
+    private JComboBox<String> mappingTypeDropdown;
+    private JButton mapButton, backButton, generateExcelButton, downloadButton, uploadButton;
+    private JLabel downloadLinkLabel;
+    private String uploadedExcelPath = "";
+    private File generatedExcel = new File("upload.xlsx");
+
+    public RequirementMapperScreen() {
+        frame = new JFrame("Requirement Mapping");
+        frame.setSize(600, 350);
+        frame.setLayout(new GridBagLayout());
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
+
+        // Label
+        JLabel selectLabel = new JLabel("Select Requirement Mapping Type:");
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 1;
+        frame.add(selectLabel, gbc);
+
+        // Dropdown
+        mappingTypeDropdown = new JComboBox<>(new String[]{"Select Type", "Automatic", "Manual"});
+        gbc.gridx = 1;
+        frame.add(mappingTypeDropdown, gbc);
+
+        // Generate Excel Button
+        generateExcelButton = new JButton("Generate Excel");
+        generateExcelButton.setVisible(false);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        frame.add(generateExcelButton, gbc);
+
+        // Download Link
+        downloadLinkLabel = new JLabel();
+        downloadLinkLabel.setVisible(false);
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        frame.add(downloadLinkLabel, gbc);
+
+        // Download Button
+        downloadButton = new JButton("Download Excel");
+        downloadButton.setVisible(false);
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 1;
+        frame.add(downloadButton, gbc);
+
+        // Upload Button
+        uploadButton = new JButton("Upload Excel");
+        uploadButton.setVisible(false);
+        gbc.gridx = 1;
+        frame.add(uploadButton, gbc);
+
+        // Map Button
+        mapButton = new JButton("Map Requirements");
+        mapButton.setVisible(false);
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        frame.add(mapButton, gbc);
+
+        // Back Button
+        backButton = new JButton("Back");
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 2;
+        frame.add(backButton, gbc);
+
+        mappingTypeDropdown.addActionListener(e -> updateUIBasedOnSelection());
+
+        generateExcelButton.addActionListener(e -> generateExcel());
+        downloadButton.addActionListener(e -> openFile(generatedExcel));
+        uploadButton.addActionListener(e -> uploadExcel());
+
+        backButton.addActionListener(e -> frame.dispose());
+
+        new Timer().schedule(new TimerTask() {
+            public void run() {
+                SwingUtilities.invokeLater(() -> checkForGeneratedExcel());
+            }
+        }, 0, 5000);
+
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
+    private void updateUIBasedOnSelection() {
+        String selected = (String) mappingTypeDropdown.getSelectedItem();
+        boolean isManual = selected.equalsIgnoreCase("Manual");
+        boolean isAutomatic = selected.equalsIgnoreCase("Automatic");
+
+        generateExcelButton.setVisible(isManual);
+        downloadLinkLabel.setVisible(isManual && generatedExcel.exists());
+        downloadButton.setVisible(isManual && generatedExcel.exists());
+        uploadButton.setVisible(isManual && generatedExcel.exists());
+        mapButton.setVisible((isAutomatic || isManual) && (!isManual || !uploadedExcelPath.isEmpty()));
+
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    private void generateExcel() {
+        new Thread(() -> {
+            try {
+                Thread.sleep(5000);
+                generatedExcel.createNewFile();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void checkForGeneratedExcel() {
+        String selected = (String) mappingTypeDropdown.getSelectedItem();
+        if (selected.equalsIgnoreCase("Manual") && generatedExcel.exists()) {
+            downloadLinkLabel.setText("Excel generated: upload.xlsx");
+            downloadLinkLabel.setVisible(true);
+            downloadButton.setVisible(true);
+            uploadButton.setVisible(true);
+        }
+    }
+
+    private void openFile(File file) {
+        try {
+            Desktop.getDesktop().open(file);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(frame, "Unable to open file.");
+        }
+    }
+
+    private void uploadExcel() {
+        JFileChooser fileChooser = new JFileChooser();
+        int option = fileChooser.showOpenDialog(frame);
+        if (option == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            uploadedExcelPath = selectedFile.getAbsolutePath();
+            JOptionPane.showMessageDialog(frame, "Excel uploaded: " + uploadedExcelPath);
+            mapButton.setVisible(true);
+        }
+    }
+
+    public String getUploadedExcelPath() {
+        return uploadedExcelPath;
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(RequirementMapperScreen::new);
+    }
+}
